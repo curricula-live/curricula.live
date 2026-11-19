@@ -8,3 +8,6 @@ management:
     web:
       exposure:
         include: health,info
+curricula:
+  api:
+    base-url: ${CURRICULA_API_URL:http://localhost:8081}

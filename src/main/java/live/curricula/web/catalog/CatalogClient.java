@@ -1,11 +1,11 @@
 package live.curricula.web.catalog;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestClient;
 @Service
 public class CatalogClient {
  private final RestClient client;
- public CatalogClient() {
-   String origin = System.getenv().getOrDefault("CURRICULA_API_URL", "http://localhost:8081");
+ public CatalogClient(@Value("${curricula.api.base-url:http://localhost:8081}") String origin) {
    client = RestClient.builder().baseUrl(origin).build();
  }
  public SearchResults search(String query) {
