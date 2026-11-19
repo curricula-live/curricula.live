@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Concept — curricula.live</title><link rel="stylesheet" href="/css/site.css"></head><body>
+<div th:replace="~{fragments/header :: header}"></div>
+<main class="container"><a href="/search">Back to search</a>
+<p th:if="${unavailable}" class="notice">The knowledge dataset is not connected yet.</p>
+<p th:if="${concept == null and !unavailable}" class="notice">Concept not found.</p>
+<article th:if="${concept != null}"><p class="eyebrow">Concept</p>
+<h1 th:text="${concept.label}"></h1><p class="iri" th:text="${concept.iri}"></p>
+</article></main></body></html>

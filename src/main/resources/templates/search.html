@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Search — curricula.live</title><link rel="stylesheet" href="/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js" integrity="sha384-gmJEF2eAKY4e+FDN+qtKIivWyb6ANwDB7JUdUybKgQspPKyEX/pIRZG/0uaRoW2C" crossorigin="anonymous"></script>
+</head><body><div th:replace="~{fragments/header :: header}"></div>
+<main class="container"><p class="eyebrow">Knowledge explorer</p><h1>Find a concept.</h1>
+<form action="/search" method="get" hx-get="/search/results" hx-target="#search-results" hx-swap="outerHTML">
+<label for="q">Concept or keyword</label>
+<div class="search-row"><input name="q" id="q" type="search" required th:value="${query}" placeholder="binary search"><button>Search</button></div>
+</form><div th:replace="~{fragments/results :: results}"></div></main></body></html>

@@ -1,0 +1,9 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="results" id="search-results" aria-live="polite">
+<p th:if="${unavailable}" class="notice" role="status">The knowledge dataset is not connected yet.</p>
+<p th:if="${searched and !unavailable and #lists.isEmpty(results)}" class="notice">No matching concepts.</p>
+<ul class="results" th:if="${!unavailable and !#lists.isEmpty(results)}">
+<li th:each="item : ${results}"><a th:text="${item.label}" th:href="@{/concepts/{slug}(slug=${item.slug})}">Concept</a>
+<span class="iri" th:text="${item.iri}"></span></li>
+</ul></section></body></html>
