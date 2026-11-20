@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Controller
 public class PagesController {
@@ -34,29 +35,61 @@ public class PagesController {
     public String about() { return "about"; }
 
     @GetMapping("/search")
-    public String search(@RequestParam(defaultValue = "") String q, Model model) {
-        populateSearch(q, model);
+    public String search(@RequestParam(defaultValue = "") String q,
+                         @RequestParam(defaultValue = "all") String category, Model model) {
+        populateSearch(q.strip(), searchCategory(category), model);
         return "search";
     }
 
     @GetMapping("/search/results")
-    public String searchResults(@RequestParam(defaultValue = "") String q, Model model) {
-        populateSearch(q, model);
+    public String searchResults(@RequestParam(defaultValue = "") String q,
+                                @RequestParam(defaultValue = "all") String category,
+                                Model model, HttpServletResponse response) {
+        String query = q.strip();
+        String resultType = searchCategory(category);
+        populateSearch(query, resultType, model);
+        String bookmark = UriComponentsBuilder.fromPath("/search")
+                .queryParam("q", "{query}").queryParam("category", resultType)
+                .encode().buildAndExpand(query).toUriString();
+        response.setHeader("HX-Push-Url", bookmark);
         return "fragments/results :: results";
     }
 
-    private void populateSearch(String q, Model model) {
-        model.addAttribute("query", q);
-        model.addAttribute("searched", !q.isBlank());
-        model.addAttribute("unavailable", false);
+    private String searchCategory(String category) {
+        return switch (category) {
+            case "concepts", "connections" -> category;
+            default -> "all";
+        };
+    }
+
+    private void populateSearch(String query, String category, Model model) {
+        model.addAttribute("query", query);
+        model.addAttribute("category", category);
+        model.addAttribute("searched", !query.isBlank());
         model.addAttribute("results", List.of());
-        if (q.isBlank()) return;
-        try {
-            var response = client.search(q.trim());
-            model.addAttribute("results", response == null || response.concepts() == null
-                    ? List.of() : response.concepts());
-        } catch (RestClientException exception) {
-            model.addAttribute("unavailable", true);
+        model.addAttribute("connections", List.of());
+        model.addAttribute("conceptsUnavailable", false);
+        model.addAttribute("connectionsUnavailable", false);
+        model.addAttribute("connectionsInvalid", false);
+        if (query.isBlank()) return;
+
+        if (!category.equals("connections")) {
+            try {
+                var result = client.search(query);
+                if (result != null && result.concepts() != null) model.addAttribute("results", result.concepts());
+            } catch (RestClientException exception) {
+                model.addAttribute("conceptsUnavailable", true);
+            }
+        }
+        if (!category.equals("concepts")) {
+            try {
+                var result = client.searchConnections(query);
+                if (result != null && result.connections() != null) model.addAttribute("connections", result.connections());
+            } catch (HttpClientErrorException.BadRequest exception) {
+                model.addAttribute("connectionsInvalid", true);
+            } catch (RestClientException exception) {
+                model.addAttribute("connectionsUnavailable", true);
+            }
         }
     }
 

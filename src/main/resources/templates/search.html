@@ -4,8 +4,14 @@
 <title>Search — curricula.live</title><link rel="stylesheet" href="/css/site.css">
 <script defer src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js" integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg" crossorigin="anonymous"></script>
 </head><body><div th:replace="~{fragments/header :: header}"></div>
-<main class="container"><p class="eyebrow">Knowledge explorer</p><h1>Find a concept.</h1>
+<main class="container"><p class="eyebrow">Knowledge explorer</p><h1>Search concepts and connections</h1>
 <form action="/search" method="get" hx-get="/search/results" hx-target="#search-results" hx-swap="outerHTML">
 <label for="q">Concept or keyword</label>
 <div class="search-row"><input name="q" id="q" type="search" required th:value="${query}" placeholder="binary search"><button>Search</button></div>
+<label for="category">Result type</label>
+<select name="category" id="category">
+    <option value="all" th:selected="${category == 'all'}">All results</option>
+    <option value="concepts" th:selected="${category == 'concepts'}">Concepts</option>
+    <option value="connections" th:selected="${category == 'connections'}">Connections</option>
+</select>
 </form><div th:replace="~{fragments/results :: results}"></div></main></body></html>

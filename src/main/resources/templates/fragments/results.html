@@ -1,9 +1,33 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org"><body>
 <section th:fragment="results" id="search-results" aria-live="polite">
-<p th:if="${unavailable}" class="notice" role="status">The knowledge dataset is not connected yet.</p>
-<p th:if="${searched and !unavailable and #lists.isEmpty(results)}" class="notice">No matching concepts.</p>
-<ul class="results" th:if="${!unavailable and !#lists.isEmpty(results)}">
-<li th:each="item : ${results}"><a th:text="${item.label}" th:href="@{/concepts/{slug}(slug=${item.slug})}">Concept</a>
-<span class="iri" th:text="${item.iri}"></span></li>
-</ul></section></body></html>
+    <section th:if="${searched and category != 'connections'}" aria-labelledby="concept-results-title">
+        <h2 id="concept-results-title">Concepts</h2>
+        <p th:if="${conceptsUnavailable}" class="notice" role="status">Concept search is temporarily unavailable. Check whether the knowledge dataset is connected.</p>
+        <p th:if="${!conceptsUnavailable and #lists.isEmpty(results)}" class="notice">No matching concepts.</p>
+        <ul class="results" th:if="${!#lists.isEmpty(results)}">
+            <li th:each="item : ${results}">
+                <a th:text="${item.label}" th:href="@{/concepts/{slug}(slug=${item.slug})}">Concept</a>
+                <span class="iri" th:text="${item.iri}"></span>
+            </li>
+        </ul>
+    </section>
+    <section th:if="${searched and category != 'concepts'}" aria-labelledby="connection-results-title">
+        <h2 id="connection-results-title">Connections</h2>
+        <p th:if="${connectionsUnavailable}" class="notice" role="status">Connection search is temporarily unavailable.</p>
+        <p th:if="${connectionsInvalid}" class="notice" role="status">Enter searchable text of at most 160 characters.</p>
+        <p th:if="${!connectionsUnavailable and !connectionsInvalid and #lists.isEmpty(connections)}" class="notice">No matching connections.</p>
+        <ul class="results" th:if="${!#lists.isEmpty(connections)}">
+            <li th:each="item : ${connections}">
+                <span>
+                    <a th:text="${item.subjectLabel}" th:href="@{/concepts/{slug}(slug=${item.subjectSlug})}">Source</a>
+                    <span th:text="${item.predicateName()}" th:title="${item.predicate}">relates to</span>
+                    →
+                    <a th:text="${item.objectLabel}" th:href="@{/concepts/{slug}(slug=${item.objectSlug})}">Target</a>
+                </span>
+                <span class="iri" th:text="${item.graph}"></span>
+            </li>
+        </ul>
+    </section>
+</section>
+</body></html>

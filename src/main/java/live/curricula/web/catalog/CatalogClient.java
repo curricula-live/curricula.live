@@ -18,7 +18,12 @@ public class CatalogClient {
 
     public SearchResults search(String query) {
         return client.get().uri(builder -> builder.path("/api/v1/search")
-                .queryParam("q", query).build()).retrieve().body(SearchResults.class);
+                .queryParam("q", "{query}").build(query)).retrieve().body(SearchResults.class);
+    }
+
+    public ConnectionSearchResults searchConnections(String query) {
+        return client.get().uri(builder -> builder.path("/api/v1/relationships/search")
+                .queryParam("q", "{query}").build(query)).retrieve().body(ConnectionSearchResults.class);
     }
 
     public ConceptSummary concept(String slug) {
