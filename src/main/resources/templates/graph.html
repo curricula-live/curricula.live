@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Concept graph — curricula.live</title>
+<link rel="stylesheet" href="/css/site.css"><script src="/js/concept-graph.js" defer></script></head>
+<body><div th:replace="~{fragments/header :: header}"></div>
+<main class="container">
+<a th:href="@{/concepts/{slug}(slug=${slug})}">Back to concept</a>
+<h1 th:if="${concept != null}" th:text="|Relationships of ${concept.label}|">Graph</h1>
+<p class="notice" th:if="${unavailable}">Knowledge service unavailable.</p>
+<div th:if="${concept != null}" id="graph-app" th:attr="data-slug=${slug}">
+  <label for="depth">Recorded relationship exploration depth</label>
+  <select id="depth"><option value="1">1 hop</option><option value="2" selected>2 hops</option>
+  <option value="3">3 hops</option><option value="4">4 hops</option><option value="5">5 hops</option></select>
+  <p id="graph-status" role="status" aria-live="polite">Loading graph…</p>
+  <svg id="concept-graph" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" role="img" aria-label="Concept relationship diagram"></svg>
+  <div id="graph-inspector" aria-live="polite"></div>
+</div>
+</main></body></html>

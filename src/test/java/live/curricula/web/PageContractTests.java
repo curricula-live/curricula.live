@@ -23,6 +23,6 @@ class PageContractTests {
  @Test void conceptWithoutBackendReturnsUnavailable() throws Exception {
    var r=get("/concepts/binary-search");
    assertEquals(503,r.statusCode());
-   assertTrue(r.body().contains("not connected yet"));
+   assertTrue(r.body().contains("currently unavailable"));
  }
 }

@@ -1,0 +1,33 @@
+services:
+  api:
+    build:
+      context: ../../api.curricula.live
+    environment:
+      PORT: "8081"
+      CURRICULA_RDF_STORE: /var/lib/curricula/rdf
+      CURRICULA_RDF_PACKAGE_DIR: /releases/formal-sciences
+      CURRICULA_RDF_MANIFEST_SHA256: "${RDF_MANIFEST_SHA256:?Set reviewed release digest}"
+      CURRICULA_RDF_COMMIT: "${RDF_COMMIT:?Set reviewed immutable producer commit}"
+    volumes:
+      - rdf-data:/var/lib/curricula/rdf
+      - "${RDF_PACKAGE_DIR:?Provide absolute verified RDF package path}:/releases/formal-sciences:ro"
+    networks: [internal]
+    mem_limit: 6g
+    restart: unless-stopped
+  web:
+    build:
+      context: ..
+    environment:
+      CURRICULA_API_URL: http://api:8081
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on: [api]
+    networks: [internal]
+    mem_limit: 1500m
+    restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge
+volumes:
+  rdf-data:

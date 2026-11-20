@@ -13,3 +13,18 @@ h1{font-size:clamp(2.4rem,5.5vw,4.4rem);line-height:1.1;letter-spacing:-.05em;ma
 .results{list-style:none;padding:0}.results li{display:flex;flex-direction:column;padding:1rem 0;border-bottom:1px solid var(--line)}
 .iri{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
 @media(max-width:600px){.search-row{flex-direction:column}.header{padding:1rem}.container{padding:3rem 1rem}}
+
+/* Explicitly distinguish taxonomy, scientific claims, mappings and provenance. */
+.relation-list{list-style:none;margin:1rem 0 0;padding:0}
+.relation-list li{border-bottom:1px solid var(--line);padding:.85rem 0;display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.tag{font-size:.74rem;font-weight:650;background:#e6edf2;border-radius:4px;padding:.14rem .5rem;color:#34536a}
+#concept-graph{width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:10px;margin-top:1rem}
+.graph-node{fill:#3a7292;stroke:#fff;stroke-width:2}
+.graph-root{fill:#175b7d;stroke:#fff;stroke-width:3}
+.graph-edge{stroke:#728b9e;stroke-width:1.1;cursor:pointer}
+.graph-scientific{stroke:#156a4f;stroke-width:2}
+.graph-taxonomy{stroke:#9ba7b0}
+.graph-mapping{stroke:#7656ad;stroke-dasharray:4 3}
+.graph-label{font-size:10px;fill:#192c3a;pointer-events:none}
+#graph-inspector{border:1px solid var(--line);padding:1rem;background:#fff;margin-top:1rem;border-radius:6px;overflow-wrap:anywhere}
+#depth{font:inherit;border:1px solid var(--line);padding:.5rem;margin:.7rem}
