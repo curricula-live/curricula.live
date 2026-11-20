@@ -31,18 +31,19 @@ class ConceptRenderingTests {
     private static final String UNIT = BASE + "concept/unit-propagation";
     private static final String USES = BASE + "vocab/uses";
     private static final String LOGIC = BASE + "scheme/logic";
+    private static final String ASSERTED = BASE + "graph/asserted";
 
     @BeforeEach void data() {
         when(api.concept("dpll-algorithm")).thenReturn(
                 new ConceptSummary(DPLL, "dpll-algorithm", "DPLL algorithm"));
         var relations = List.of(
                 new Relationship(UNIT, USES, DPLL,
-                        "asserted", "incoming", "scientific", "Unit propagation"),
+                        "asserted", "incoming", "scientific", "Unit propagation", ASSERTED),
                 new Relationship(DPLL, USES, UNIT,
-                        "asserted", "outgoing", "scientific", "Unit propagation"),
+                        "asserted", "outgoing", "scientific", "Unit propagation", ASSERTED),
                 new Relationship(DPLL, "http://www.w3.org/2004/02/skos/core#broader",
                         BASE + "concept/boolean-satisfiability", "asserted", "outgoing",
-                        "taxonomy", "Boolean satisfiability"));
+                        "taxonomy", "Boolean satisfiability", ASSERTED));
         when(api.relationships("dpll-algorithm", "all")).thenReturn(relations);
         var evidence = List.of(new Evidence(BASE + "assertion/test-witness", USES,
                 UNIT, "https://example.org/source", BASE + "witness/test", "example-digest", DPLL));
@@ -82,6 +83,7 @@ class ConceptRenderingTests {
         assertEquals(200, json.statusCode());
         assertTrue(json.body().contains("unit-propagation"));
         assertTrue(json.body().contains("asserted"));
+        assertTrue(json.body().contains(ASSERTED));
         assertTrue(json.body().contains("nodeDetails"));
     }
 

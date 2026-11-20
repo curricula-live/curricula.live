@@ -47,7 +47,7 @@
   }
 
   function edgeKey(edge) {
-    return JSON.stringify([edge.subject, edge.predicate, edge.object, edge.graph]);
+    return JSON.stringify([edge.subject, edge.predicate, edge.object, edge.graphIri || edge.graph]);
   }
 
   function endpoint(slug, suffix) {
@@ -294,7 +294,9 @@
       button.dataset.expand = "";
       button.addEventListener("click", async () => {
         await load(detail.slug, "1", true);
-        inspector.querySelector("[data-expand]:enabled")?.focus();
+        if (selection.node === iri && document.activeElement === document.body) {
+          inspector.querySelector("[data-expand]:enabled")?.focus();
+        }
       });
       const actions = html("div", "", "graph-node-actions");
       actions.append(link, button);
@@ -332,6 +334,7 @@
     metadata(fields, "Object", nodeLabel(edge.object));
     metadata(fields, "Object IRI", edge.object);
     metadata(fields, "Source graph", edge.graph);
+    metadata(fields, "Named graph IRI", edge.graphIri);
     metadata(fields, "Relationship type", edge.kind);
     const evidence = html("section", "", "graph-evidence");
     evidence.append(html("h3", "Provenance"));
