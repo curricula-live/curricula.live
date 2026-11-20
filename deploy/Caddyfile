@@ -1,0 +1,11 @@
+{
+	auto_https disable_redirects
+}
+
+{$CURRICULA_STAGING_HOST} {
+	tls {$CURRICULA_STAGING_CERT} {$CURRICULA_STAGING_KEY}
+	log
+	@management path /actuator /actuator/*
+	respond @management 404
+	reverse_proxy 127.0.0.1:{$CURRICULA_WEB_BIND_PORT:8080}
+}

@@ -1,33 +1,97 @@
-# Oracle ARM64 and Cloudflare deployment preparation
+# Oracle ARM64 staging
 
-This is a proposed single-VM Docker Compose layout; it has not yet been executed on an actual Oracle ARM64 instance. Both Java applications are independently buildable and have passed local JVM tests and HTTP integration smoke checks on tower.
+The staging stack uses an Oracle Ampere ARM64 VM, Docker Engine with Compose v2, and a host Caddy service. Cloudflare terminates public HTTPS and reaches Caddy over HTTPS in Full (strict) mode. Caddy proxies to the web service on the VM's loopback interface. The web service reaches the API over an internal Docker network. Jena uses the API's named TDB2 volume. The API, TDB2, and RDF publication commands have no public listener.
 
-## Topology
+## Build and start a pinned stack
 
-- Spring Boot API (port 8081, private Docker network): Apache Jena TDB2 persistent RDF store.
-- Spring Boot web (port 8080, bound to loopback on the VM): Spring MVC, Thymeleaf, HTMX and a read-only browser graph viewer.
-- Caddy or Nginx on the host: proxy the public origin to loopback port 8080.
-- Cloudflare: DNS, HTTPS reverse proxy, caching for static assets, origin protection. Thymeleaf's dynamic pages **are not deployed to Cloudflare Pages**.
-- Source ontologies and the previous Supabase/Vercel deployment are unaffected.
+1. Install Git, Temurin JDK 25, Docker Engine with Compose v2.24 or later, Caddy, curl, and jq. Use cgroup v2 with container memory limits enabled. Check out the web and API repositories in sibling directories named `curricula.live` and `api.curricula.live`.
+2. Obtain a reviewed RDF publication and pin its full producer commit and manifest SHA-256. Verify the manifest hash against the approved digest. Place the manifest and its declared artifacts in a dedicated immutable directory outside either checkout. The container runs as UID 10001, so its user must be able to read the read-only bind mount. Modes 0755 for the publication directory and 0644 for the release's public artifacts suffice. The API independently validates every artifact and the declared named graphs before activation.
+3. From the web checkout, set these variables in an untracked file with the pinned values. Deploy the `deploy/` files from the same commit used for `WEB_REVISION`.
 
-The sample compose file is under deploy/compose.yaml. Keep both new repositories as sibling directories so relative build contexts resolve.
+   ```bash
+   API_REVISION='<40-character-API-commit>'
+   WEB_REVISION='<40-character-web-commit>'
+   RDF_PACKAGE_DIR='/srv/curricula/releases/formal-sciences/<manifest-sha256>'
+   RDF_MANIFEST_SHA256='<64-character-reviewed-manifest-sha256>'
+   RDF_COMMIT='<40-character-producer-commit>'
+   STAGING_PLATFORM=linux/arm64
+   WEB_BIND_PORT=8080
+   ```
 
-## Start prerequisites
+4. Load that file and create images from the pinned commits.
 
-Obtain a separately reviewed immutable producer RDF release (not the moving PR feature branch). Verify its artifact hashes independently, and set:
-- RDF_PACKAGE_DIR: absolute path containing manifest.json and the five published artifacts
-- RDF_MANIFEST_SHA256: SHA-256 of the reviewed manifest
-- RDF_COMMIT: producer's 40-character immutable Git commit
-All three belong in a deployment environment or secret store, **never in committed credentials**.
+   ```bash
+   set -a
+   source /srv/curricula/staging.env
+   set +a
+   printf '%s  %s\n' "$RDF_MANIFEST_SHA256" "$RDF_PACKAGE_DIR/manifest.json" | sha256sum -c -
+   bash deploy/package.sh
+   stack=(docker compose --env-file /srv/curricula/staging.env -f deploy/compose.yaml)
+   "${stack[@]}" config --quiet
+   "${stack[@]}" up --build -d --wait --wait-timeout 240
+   "${stack[@]}" ps
+   ```
 
-Execute: docker compose -f deploy/compose.yaml up --build -d
+   Packaging exports the exact Git trees, runs both Maven verification builds, and keeps staging JARs under the ignored `deploy/.build/` directory. Docker packages the same bytecode for either Linux architecture using a digest-pinned Temurin 25 runtime image. For local amd64 verification, set `STAGING_PLATFORM=linux/amd64`. `CURRICULA_MAVEN` may point to a local Maven launcher when the development environment requires a proxy or a preconfigured dependency cache. Use the repositories' Maven wrappers on a standard staging build host.
 
-Do not expose API port 8081 directly. Do not mount read/write ontology source directories. TDB2 data persists in the named Docker volume rdf-data. Back up this volume and the immutable publication package outside Oracle.
+5. Check knowledge readiness and representative rendering. Choose a query known to have a result in the pinned release.
 
-## Current limitations
+   ```bash
+   "${stack[@]}" exec -T api curricula-healthcheck 8081 /api/v1/knowledge/publication '"available":true' |
+     jq -e --arg commit "$RDF_COMMIT" --arg digest "$RDF_MANIFEST_SHA256" \
+       'select(.sourceCommit == $commit and .manifestSha256 == $digest and .concepts > 0)'
+   curl -fsS "http://127.0.0.1:$WEB_BIND_PORT/actuator/health" | jq -e '.status == "UP"'
+   curl -fsS "http://127.0.0.1:$WEB_BIND_PORT/search/results?q=mathematics" | grep 'href="/concepts/'
+   curl -fsS "http://127.0.0.1:$WEB_BIND_PORT/concepts/mathematics/graph/data?depth=1" |
+     jq -e '(.nodes | length) > 0'
+   ```
 
-- No live Oracle ARM64 deployment or image manifest validation has yet been performed.
-- Embedded TDB2 is selected initially to avoid another long-lived JVM on OCI Always Free. The API abstraction permits a future switch to a private Fuseki service.
-- Authentication, administrative editor, traffic cutover, object storage, full graph-WebGL parity, teacher-planning workflow, and email/SSO are future migration tasks.
-- UI currently implements a bounded read-only SVG relationship preview; the existing Sigma.js graph explorer still needs a parity-focused port.
-- The Java API is independent of curricula-live/data and does not assume the legacy PostgreSQL UUID model.
+The API readiness probe gates web startup on an active RDF publication. Confirm the publication's commit and digest separately after a release change or recovery. Keep published staging images or rebuild from recorded Git commits. Development ontology fixtures may be used for an isolated smoke test. Promoting a publication to production requires separate data review.
+
+## Origin HTTPS and observability
+
+Use the host's `deploy/Caddyfile` as the staging Caddy configuration. Set `CURRICULA_STAGING_HOST` to the dedicated staging hostname. Set `CURRICULA_STAGING_CERT` and `CURRICULA_STAGING_KEY` to Caddy-readable certificate and key files outside Git. The certificate must be unexpired and trusted by Cloudflare for this hostname. Set `CURRICULA_WEB_BIND_PORT` to the Compose loopback port if it differs from 8080. Supply these settings to the Caddy service, validate the configuration, and reload Caddy. On a shared host, add the staging site block to the existing configuration and preserve its global settings. Caddy blocks Actuator routes, while Compose health checks reach them directly.
+
+On the staging host, allow TCP 443 only from Cloudflare's current published origin IP ranges, and restrict SSH to trusted administration sources. Enforce those restrictions in the OCI security list or network security group and the host firewall. Check the staging hostname through its intended proxy and certificate chain. Keep dynamic and authenticated routes uncached. Configure Cloudflare Access or equivalent access restrictions if the staging site is private. Staging settings apply to a separate staging hostname.
+
+The Compose API and web services use 3 GiB and 1 GiB container memory budgets. JDK heap sizing uses 60% of each budget. Adjust `API_MEMORY_LIMIT` and `WEB_MEMORY_LIMIT` (for example `3g` or `1024m`) together with capacity on the VM. Inspect each container's `/sys/fs/cgroup/memory.max` to verify the running limit and leave room for the container runtime, Caddy and filesystem cache. Review `docker compose ps`, `docker compose logs -f api web`, `docker stats`, and Caddy's access logs. Alert on sustained unhealthy status, upstream 5xx, VM memory pressure, disk growth and certificate expiry. Compose rotates each service's logs at 10 MiB with three files.
+
+## Backup and recover TDB2
+
+Stop both services before copying TDB2 to flush outstanding writes. Coordinate a staging maintenance window.
+
+```bash
+backup=/srv/curricula/backups/tdb2-$(date -u +%Y%m%dT%H%M%SZ).tar
+umask 077
+"${stack[@]}" stop web
+"${stack[@]}" stop api
+"${stack[@]}" run --rm --no-deps -T --entrypoint tar api \
+  -cpf - -C /var/lib/curricula/rdf . > "$backup"
+tar -tf "$backup" > "$backup.files"
+sha256sum "$backup" > "$backup.sha256"
+"${stack[@]}" up --no-recreate --no-build -d --wait --wait-timeout 240
+```
+
+Store the verified backup off the VM alongside the pinned deployment metadata and immutable release. Restore only trusted, verified archives. Restore into a fresh Compose project and TDB2 volume before deciding on a recovery switch. Use a unique project name and unused loopback port.
+
+```bash
+sha256sum -c "$backup.sha256"
+export WEB_BIND_PORT=18081
+restore=("${stack[@]}" --project-name curricula-staging-restore)
+"${restore[@]}" run --rm --no-deps -T --entrypoint tar api \
+  -xpf - -C /var/lib/curricula/rdf < "$backup"
+"${restore[@]}" -f deploy/compose.persisted.yaml up --no-build -d --wait --wait-timeout 240
+```
+
+The override starts the API from persistent state without importing an RDF package. Repeat the publication and web smoke checks against the recovery project and port. Use the source commit and manifest digest recorded with the backup. Keep the original volume until the replacement passes the recovery checks and staging cutover has been approved.
+
+To roll back an activation on an API revision that provides the offline `rdf-rollback` command, stop web and API, run the command once, and start with the same persisted-state override:
+
+```bash
+"${stack[@]}" stop web
+"${stack[@]}" stop api
+"${stack[@]}" run --rm --no-deps -T api rdf-rollback
+"${stack[@]}" -f deploy/compose.persisted.yaml up --no-build -d --wait --wait-timeout 240
+```
+
+Confirm the previously active publication's commit and manifest digest. Keep the override enabled until the explicitly reviewed activation of another package.

@@ -1,0 +1,4 @@
+services:
+  api:
+    environment:
+      CURRICULA_RDF_PACKAGE_DIR: ""

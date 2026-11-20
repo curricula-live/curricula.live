@@ -1,33 +1,84 @@
+name: curricula-staging
+
+x-service: &service
+  platform: "${STAGING_PLATFORM:-linux/arm64}"
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=128m,mode=1777
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+x-healthcheck: &healthcheck
+  interval: 15s
+  timeout: 5s
+  retries: 3
+  start_period: 120s
+  start_interval: 2s
+
 services:
   api:
+    <<: *service
+    image: "curricula-staging-api:${API_REVISION:?Pin the API commit}"
     build:
-      context: ../../api.curricula.live
+      context: ".build/api/${API_REVISION}"
+      dockerfile: ../../../Dockerfile
+      target: api
+      args:
+        REVISION: "${API_REVISION}"
     environment:
       PORT: "8081"
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAM=${API_MEMORY_LIMIT:-3g}"
       CURRICULA_RDF_STORE: /var/lib/curricula/rdf
       CURRICULA_RDF_PACKAGE_DIR: /releases/formal-sciences
-      CURRICULA_RDF_MANIFEST_SHA256: "${RDF_MANIFEST_SHA256:?Set reviewed release digest}"
-      CURRICULA_RDF_COMMIT: "${RDF_COMMIT:?Set reviewed immutable producer commit}"
+      CURRICULA_RDF_MANIFEST_SHA256: "${RDF_MANIFEST_SHA256:?Set the pinned manifest digest}"
+      CURRICULA_RDF_COMMIT: "${RDF_COMMIT:?Set the immutable producer commit}"
     volumes:
       - rdf-data:/var/lib/curricula/rdf
-      - "${RDF_PACKAGE_DIR:?Provide absolute verified RDF package path}:/releases/formal-sciences:ro"
-    networks: [internal]
-    mem_limit: 6g
-    restart: unless-stopped
+      - type: bind
+        source: "${RDF_PACKAGE_DIR:?Provide the absolute pinned RDF package path}"
+        target: /releases/formal-sciences
+        read_only: true
+        bind:
+          create_host_path: false
+    networks: [private]
+    mem_limit: "${API_MEMORY_LIMIT:-3g}"
+    stop_grace_period: 30s
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curricula-healthcheck", "8081", "/api/v1/status", '"knowledgeAvailable":true']
+
   web:
+    <<: *service
+    image: "curricula-staging-web:${WEB_REVISION:?Pin the web commit}"
     build:
-      context: ..
+      context: ".build/web/${WEB_REVISION}"
+      dockerfile: ../../../Dockerfile
+      target: web
+      args:
+        REVISION: "${WEB_REVISION}"
     environment:
       CURRICULA_API_URL: http://api:8081
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAM=${WEB_MEMORY_LIMIT:-1g}"
     ports:
-      - "127.0.0.1:8080:8080"
-    depends_on: [api]
-    networks: [internal]
-    mem_limit: 1500m
-    restart: unless-stopped
+      - "127.0.0.1:${WEB_BIND_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [private, edge]
+    mem_limit: "${WEB_MEMORY_LIMIT:-1g}"
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curricula-healthcheck", "8080", "/actuator/health", '"status":"UP"']
 
 networks:
-  internal:
-    driver: bridge
+  private:
+    internal: true
+  edge:
+
 volumes:
   rdf-data:
