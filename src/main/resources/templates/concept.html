@@ -12,16 +12,22 @@
   <p class="eyebrow">Canonical concept</p>
   <h1 th:text="${concept.label}">Concept label</h1>
   <p class="iri" th:text="${concept.iri}">IRI</p>
-  <p><a th:href="@{/concepts/{slug}/graph(slug=${slug})}">Explore relationship graph</a></p>
-  <section class="section">
+  <nav class="concept-nav" aria-label="Concept views">
+    <a th:href="@{/concepts/{slug}(slug=${slug})}" th:attr="aria-current=${!connectionsView ? 'page' : null}">Overview</a>
+    <a th:href="@{/concepts/{slug}(slug=${slug},view='connections')}" th:attr="aria-current=${connectionsView ? 'page' : null}">Connections</a>
+    <a th:href="@{/concepts/{slug}/graph(slug=${slug})}">Explore relationship graph</a>
+  </nav>
+  <section class="section" id="connections" th:classappend="${connectionsView} ? 'section-current'">
     <h2>Scientific relationships</h2>
     <p>Recorded directional scientific assertions; these are not derived from taxonomic proximity.</p>
     <ul class="relation-list">
       <li th:each="r : ${relations}" th:if="${r.kind == 'scientific'}">
         <span class="tag" th:text="${r.graph}">asserted</span>
         <span class="tag" th:text="${r.direction}">outgoing</span>
-        <strong th:text="${r.predicate}">predicate</strong>
-        <span th:text="${r.objectLabel}">target</span>
+        <span><strong th:text="${r.direction == 'incoming' ? r.objectLabel : concept.label}">Subject</strong>
+          <span aria-hidden="true"> → </span>
+          <strong th:text="${r.direction == 'incoming' ? concept.label : r.objectLabel}">Object</strong></span>
+        <span class="iri" th:text="${r.predicate}">predicate</span>
       </li>
     </ul>
   </section>
@@ -31,8 +37,9 @@
       <li th:each="r : ${relations}" th:if="${r.kind != 'scientific'}">
         <span class="tag" th:text="${r.kind}">kind</span>
         <span class="tag" th:text="${r.graph}">graph</span>
+        <span class="tag" th:text="${r.direction}">direction</span>
         <span th:text="${r.predicate}">predicate</span>
-        <span th:text="${r.objectLabel}">target</span>
+        <span th:text="${r.objectLabel}">related resource</span>
       </li>
     </ul>
   </section>
@@ -43,6 +50,7 @@
       <li th:each="e : ${evidence}">
         <strong class="iri" th:text="${e.assertionIri}">Assertion</strong>
         <span class="iri" th:text="${e.predicate}">Predicate</span>
+        <span class="iri" th:if="${e.object != null}" th:text="|Object: ${e.object}|"></span>
         <span class="iri" th:if="${e.source != null}" th:text="|Source: ${e.source}|"></span>
         <span class="iri" th:if="${e.witness != null}" th:text="|Witness: ${e.witness}|"></span>
         <span class="iri" th:if="${e.identifier != null}" th:text="|Identifier: ${e.identifier}|"></span>

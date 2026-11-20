@@ -1,6 +1,8 @@
 package live.curricula.web.catalog;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,9 +38,27 @@ public class CatalogClient {
         return result == null ? List.of() : result;
     }
 
-    public Neighborhood neighborhood(String slug, int depth) {
+    public List<Evidence> edgeProvenance(String slug, String predicate, String object) {
+        var result = client.get().uri(builder -> builder.path("/api/v1/concepts/{slug}/provenance")
+                .queryParam("direction", "outgoing")
+                .queryParam("predicate", "{predicate}")
+                .queryParam("adjacent", "{object}")
+                .build(Map.of("slug", slug, "predicate", predicate, "object", object)))
+                .retrieve().body(new ParameterizedTypeReference<List<Evidence>>() {});
+        return result == null ? List.of() : result;
+    }
+
+    public Neighborhood neighborhood(String slug, int depth, String graph, String kind,
+                                     String domain, String predicate) {
         return client.get().uri(builder -> builder.path("/api/v1/concepts/{slug}/neighborhood")
-                .queryParam("depth", depth).build(slug)).retrieve().body(Neighborhood.class);
+                .queryParam("depth", depth)
+                .queryParam("limit", 200)
+                .queryParam("graph", graph)
+                .queryParam("kind", kind)
+                .queryParamIfPresent("domain", domain.isEmpty() ? Optional.empty() : Optional.of("{domain}"))
+                .queryParamIfPresent("predicate", predicate.isEmpty() ? Optional.empty() : Optional.of("{predicate}"))
+                .build(Map.of("slug", slug, "domain", domain, "predicate", predicate)))
+                .retrieve().body(Neighborhood.class);
     }
 
     public PublicationStatus publication() {

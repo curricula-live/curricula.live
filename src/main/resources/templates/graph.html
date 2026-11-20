@@ -4,16 +4,47 @@
 <title>Concept graph — curricula.live</title>
 <link rel="stylesheet" href="/css/site.css"><script src="/js/concept-graph.js" defer></script></head>
 <body><div th:replace="~{fragments/header :: header}"></div>
-<main class="container">
+<main class="container graph-page">
 <a th:href="@{/concepts/{slug}(slug=${slug})}">Back to concept</a>
 <h1 th:if="${concept != null}" th:text="|Relationships of ${concept.label}|">Graph</h1>
 <p class="notice" th:if="${unavailable}">Knowledge service unavailable.</p>
+<p class="notice" th:if="${concept == null and !unavailable}">Concept not found.</p>
 <div th:if="${concept != null}" id="graph-app" th:attr="data-slug=${slug}">
-  <label for="depth">Recorded relationship exploration depth</label>
-  <select id="depth"><option value="1">1 hop</option><option value="2" selected>2 hops</option>
-  <option value="3">3 hops</option><option value="4">4 hops</option><option value="5">5 hops</option></select>
+  <div class="graph-filters" aria-label="Neighborhood filters">
+    <label>Depth
+      <select id="graph-depth"><option value="1">1 hop</option><option value="2" selected>2 hops</option>
+      <option value="3">3 hops</option><option value="4">4 hops</option><option value="5">5 hops</option></select>
+    </label>
+    <label>Relationship type
+      <select id="graph-kind">
+        <option value="all">All types</option><option value="scientific">Scientific</option>
+        <option value="taxonomy">Taxonomy</option><option value="association">Association</option>
+        <option value="mapping">Mapping</option><option value="other">Other</option>
+      </select>
+    </label>
+    <label>Source graph
+      <select id="graph-layer">
+        <option value="all">All graphs</option><option value="asserted">Asserted</option>
+        <option value="inferred">Inferred</option><option value="alignments">Alignments</option>
+      </select>
+    </label>
+    <label>Domain <select id="graph-domain"><option value="">All domains</option></select></label>
+    <label>Predicate <select id="graph-predicate"><option value="">All predicates</option></select></label>
+  </div>
   <p id="graph-status" role="status" aria-live="polite">Loading graph…</p>
-  <svg id="concept-graph" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" role="img" aria-label="Concept relationship diagram"></svg>
-  <div id="graph-inspector" aria-live="polite"></div>
+  <div class="graph-workspace">
+    <div class="graph-view">
+      <div class="graph-camera" role="group" aria-label="Graph view controls">
+        <button type="button" id="graph-zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" id="graph-zoom-out" aria-label="Zoom out">−</button>
+        <button type="button" id="graph-reset">Reset view</button>
+      </div>
+      <svg id="concept-graph" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650"
+           role="group" tabindex="0" aria-label="Directed concept graph" aria-describedby="graph-help"></svg>
+      <p id="graph-help">Drag the background to pan, or focus the diagram and use the arrow keys. Select a node or statement to inspect it.</p>
+      <noscript><p>JavaScript is required to explore the diagram. The concept page lists recorded relationships and evidence.</p></noscript>
+    </div>
+    <section id="graph-inspector" aria-label="Selected graph item" aria-live="polite"></section>
+  </div>
 </div>
 </main></body></html>
