@@ -1,0 +1,11 @@
+services:
+  web:
+    environment:
+      CURRICULA_ARCHIVE_PATH: /releases/graph-archive.json
+    volumes:
+      - type: bind
+        source: "${ARCHIVE_PACKAGE_PATH:?Provide the absolute path to the pinned graph archive}"
+        target: /releases/graph-archive.json
+        read_only: true
+        bind:
+          create_host_path: false

@@ -48,6 +48,10 @@ The staging stack uses an Oracle Ampere ARM64 VM, Docker Engine with Compose v2,
 
 The API readiness probe gates web startup on an active RDF publication. Confirm the publication's commit and digest separately after a release change or recovery. Keep published staging images or rebuild from recorded Git commits. Development ontology fixtures may be used for an isolated smoke test. Promoting a publication to production requires separate data review.
 
+## Archived graph search
+
+To enable the separate computing archive in staging, run `bash scripts/fetch-graph-archive.sh /srv/curricula/releases/graph-archive.json` from the web checkout. Add `ARCHIVE_PACKAGE_PATH=/srv/curricula/releases/graph-archive.json` to the staging environment and append `-f deploy/compose.archive.yaml` to the Compose command. The archive is a pinned, provisional projection. Its links retain their original release-scoped identifiers.
+
 ## Origin HTTPS and observability
 
 Use the host's `deploy/Caddyfile` as the staging Caddy configuration. Set `CURRICULA_STAGING_HOST` to the dedicated staging hostname. Set `CURRICULA_STAGING_CERT` and `CURRICULA_STAGING_KEY` to Caddy-readable certificate and key files outside Git. The certificate must be unexpired and trusted by Cloudflare for this hostname. Set `CURRICULA_WEB_BIND_PORT` to the Compose loopback port if it differs from 8080. Supply these settings to the Caddy service, validate the configuration, and reload Caddy. On a shared host, add the staging site block to the existing configuration and preserve its global settings. Caddy blocks Actuator routes, while Compose health checks reach them directly.

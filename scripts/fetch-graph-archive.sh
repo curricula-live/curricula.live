@@ -10,4 +10,5 @@ trap 'rm -f "$scratch"' EXIT
 curl --fail --silent --show-error --location --retry 3 --proto '=https' --proto-redir '=https' \
   "https://raw.githubusercontent.com/curricula-live/graph/$commit/public/graph.json" -o "$scratch"
 printf '%s  %s\n' "$digest" "$scratch" | sha256sum --check
+chmod 0644 "$scratch"
 mv "$scratch" "$destination"
