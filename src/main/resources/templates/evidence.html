@@ -9,6 +9,7 @@
   <p><a th:if="${slug != null}" th:href="@{/concepts/{slug}(slug=${slug})}">Back to concept</a>
     <a th:if="${!listing}" href="/evidence">Browse all sources</a></p>
   <p th:if="${source != null}" class="iri" th:text="${source}">Source</p>
+  <p th:if="${sourceLink != null}"><a th:href="${sourceLink}" rel="noreferrer">Open cited source</a></p>
   <p th:if="${message != null}" role="status" class="notice" th:text="${message}">Evidence status</p>
   <th:block th:if="${page != null}">
     <p th:text="|Formal Sciences v${page.version}|">Publication</p>

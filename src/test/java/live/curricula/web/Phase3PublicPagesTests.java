@@ -70,5 +70,13 @@ class Phase3PublicPagesTests {
         when(api.sources(25, pin)).thenThrow(HttpClientErrorException.create(HttpStatus.CONFLICT,
                 "Changed", null, null, null));
         assertEquals(409, get("/evidence?offset=25&publication=" + pin).statusCode());
+
+        var term = new Scholarly.Term("A recorded term", "literal", "http://www.w3.org/2001/XMLSchema#string", "");
+        var citation = new Scholarly.Citation("https://example.org/assertion", "https://example.org/subject",
+                null, "https://example.org/predicate", term, null, source.iri(), "https://example.org/graph");
+        when(api.citations(source.iri(), null, 0, pin))
+                .thenReturn(new Scholarly.Page<>("0.8.0", pin, 0, null, List.of(citation)));
+        String selected = "/evidence?source=" + URLEncoder.encode(source.iri(), StandardCharsets.UTF_8) + "&publication=" + pin;
+        assertTrue(get(selected).body().contains("href=\"" + source.iri() + "\" rel=\"noreferrer\">Open cited source"));
     }
 }

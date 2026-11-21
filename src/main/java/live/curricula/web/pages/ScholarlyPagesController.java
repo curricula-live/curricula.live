@@ -1,6 +1,7 @@
 package live.curricula.web.pages;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.net.URI;
 import live.curricula.web.catalog.CatalogClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -44,6 +45,13 @@ public final class ScholarlyPagesController {
         try {
             var page = listing ? client.sources(offset, pin) : client.citations(source, slug, offset, pin);
             model.addAttribute("page", page);
+            if (source != null && page != null && !page.results().isEmpty()) {
+                URI recorded = URI.create(source);
+                if (recorded.getHost() != null && recorded.getUserInfo() == null
+                        && ("https".equalsIgnoreCase(recorded.getScheme()) || "http".equalsIgnoreCase(recorded.getScheme()))) {
+                    model.addAttribute("sourceLink", recorded.toASCIIString());
+                }
+            }
         } catch (HttpClientErrorException.Conflict exception) {
             response.setStatus(HttpStatus.CONFLICT.value());
             model.addAttribute("message", "The RDF publication changed. Start again at the first page.");
