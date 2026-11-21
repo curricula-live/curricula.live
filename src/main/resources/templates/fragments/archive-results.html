@@ -1,0 +1,16 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="archive">
+  <h2>Archived computing graph</h2>
+  <p>Provisional v1 concept labels in English and Romanian. Links open the archived graph.</p>
+  <p th:if="${!archiveAvailable}" role="status">Archive search is unavailable. <a href="https://graph.curricula.live/">Open the archived graph</a>.</p>
+  <p th:if="${archiveAvailable && archiveResults.isEmpty()}">No matching archived concepts.</p>
+  <ul class="results" th:unless="${archiveResults.isEmpty()}">
+    <li th:each="hit : ${archiveResults}">
+      <a th:href="${hit.url()}" th:text="${hit.label}">Archived concept</a>
+      <span lang="ro" th:unless="${hit.labelRo.isEmpty()}" th:text="${hit.labelRo}">Romanian label</span>
+      <span class="tag" th:text="${hit.module}">Module</span>
+    </li>
+  </ul>
+</section>
+</body></html>

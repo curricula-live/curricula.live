@@ -18,11 +18,11 @@ class PageContractTests {
  @Test void htmxErrorIsShownWithoutFabricatedConcepts() throws Exception {
    var r=get("/search/results?q=binary");
    assertEquals(200,r.statusCode());
-   assertTrue(r.body().contains("not connected yet"));
+   assertTrue(r.body().contains("Concept search is temporarily unavailable"));
  }
  @Test void conceptWithoutBackendReturnsUnavailable() throws Exception {
    var r=get("/concepts/binary-search");
    assertEquals(503,r.statusCode());
-   assertTrue(r.body().contains("not connected yet"));
+   assertTrue(r.body().contains("currently unavailable"));
  }
 }
