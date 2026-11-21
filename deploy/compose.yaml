@@ -35,12 +35,12 @@ services:
       JAVA_TOOL_OPTIONS: "-XX:MaxRAM=${API_MEMORY_LIMIT:-3g}"
       CURRICULA_RDF_STORE: /var/lib/curricula/rdf
       CURRICULA_RDF_PACKAGE_DIR: /releases/formal-sciences
-      CURRICULA_RDF_MANIFEST_SHA256: "${RDF_MANIFEST_SHA256:?Set the pinned manifest digest}"
-      CURRICULA_RDF_COMMIT: "${RDF_COMMIT:?Set the immutable producer commit}"
+      CURRICULA_RDF_MANIFEST_SHA256: "${RDF_MANIFEST_SHA256:-}"
+      CURRICULA_RDF_COMMIT: "${RDF_COMMIT:-}"
     volumes:
       - rdf-data:/var/lib/curricula/rdf
       - type: bind
-        source: "${RDF_PACKAGE_DIR:?Provide the absolute pinned RDF package path}"
+        source: "${RDF_PACKAGE_DIR:-./.missing-rdf-package}"
         target: /releases/formal-sciences
         read_only: true
         bind:

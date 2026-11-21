@@ -4,7 +4,7 @@ The staging stack uses an Oracle Ampere ARM64 VM, Docker Engine with Compose v2,
 
 ## Build and start a pinned stack
 
-1. Install Git, Temurin JDK 25, Docker Engine with Compose v2.24 or later, Caddy, curl, and jq. Use cgroup v2 with container memory limits enabled. Check out the web and API repositories in sibling directories named `curricula.live` and `api.curricula.live`.
+1. Install Git, Temurin JDK 25, Docker Engine with Compose v2.24.4 or later, Caddy, curl, and jq. Use cgroup v2 with container memory limits enabled. Check out the web and API repositories in sibling directories named `curricula.live` and `api.curricula.live`.
 2. Obtain a reviewed RDF publication and pin its full producer commit and manifest SHA-256. Verify the manifest hash against the approved digest. Place the manifest and its declared artifacts in a dedicated immutable directory outside either checkout. The container runs as UID 10001, so its user must be able to read the read-only bind mount. Modes 0755 for the publication directory and 0644 for the release's public artifacts suffice. The API independently validates every artifact and the declared named graphs before activation.
 3. From the web checkout, set these variables in an untracked file with the pinned values. Deploy the `deploy/` files from the same commit used for `WEB_REVISION`.
 
@@ -66,7 +66,7 @@ umask 077
 "${stack[@]}" stop web
 "${stack[@]}" stop api
 "${stack[@]}" run --rm --no-deps -T --entrypoint tar api \
-  -cpf - -C /var/lib/curricula/rdf . > "$backup"
+  --sparse -cpf - -C /var/lib/curricula/rdf . > "$backup"
 tar -tf "$backup" > "$backup.files"
 sha256sum "$backup" > "$backup.sha256"
 "${stack[@]}" up --no-recreate --no-build -d --wait --wait-timeout 240
@@ -78,20 +78,22 @@ Store the verified backup off the VM alongside the pinned deployment metadata an
 sha256sum -c "$backup.sha256"
 export WEB_BIND_PORT=18081
 restore=("${stack[@]}" --project-name curricula-staging-restore)
+restore+=(-f deploy/compose.persisted.yaml)
 "${restore[@]}" run --rm --no-deps -T --entrypoint tar api \
   -xpf - -C /var/lib/curricula/rdf < "$backup"
-"${restore[@]}" -f deploy/compose.persisted.yaml up --no-build -d --wait --wait-timeout 240
+"${restore[@]}" up --no-build -d --wait --wait-timeout 240
 ```
 
-The override starts the API from persistent state without importing an RDF package. Repeat the publication and web smoke checks against the recovery project and port. Use the source commit and manifest digest recorded with the backup. Keep the original volume until the replacement passes the recovery checks and staging cutover has been approved.
+The override starts the API from persistent state and removes the import package mount. It can restore from a verified backup when the package directory is unavailable. Repeat the publication and web smoke checks against the recovery project and port. Use the source commit and manifest digest recorded with the backup. Keep the original volume until the replacement passes the recovery checks and staging cutover has been approved.
 
 To roll back an activation on an API revision that provides the offline `rdf-rollback` command, stop web and API, run the command once, and start with the same persisted-state override:
 
 ```bash
 "${stack[@]}" stop web
 "${stack[@]}" stop api
-"${stack[@]}" run --rm --no-deps -T api rdf-rollback
-"${stack[@]}" -f deploy/compose.persisted.yaml up --no-build -d --wait --wait-timeout 240
+persisted=("${stack[@]}" -f deploy/compose.persisted.yaml)
+"${persisted[@]}" run --rm --no-deps -T api rdf-rollback
+"${persisted[@]}" up --no-build -d --wait --wait-timeout 240
 ```
 
 Confirm the previously active publication's commit and manifest digest. Keep the override enabled until the explicitly reviewed activation of another package.

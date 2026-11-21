@@ -2,3 +2,7 @@ services:
   api:
     environment:
       CURRICULA_RDF_PACKAGE_DIR: ""
+      CURRICULA_RDF_MANIFEST_SHA256: ""
+      CURRICULA_RDF_COMMIT: ""
+    volumes: !override
+      - rdf-data:/var/lib/curricula/rdf
