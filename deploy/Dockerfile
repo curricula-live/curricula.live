@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25-jre@sha256:945247f9d092703e0c6be92243ef3c51640229e23ab34d353c8dcdc73e6cd4e6 AS runtime
+FROM eclipse-temurin:25-jre@sha256:4ed132f6832e9804b123e89a849a7b4502756ae64a4ee08ebab939d9d5d0a9fa AS runtime
 ARG REVISION
 LABEL org.opencontainers.image.revision=$REVISION
 WORKDIR /app
