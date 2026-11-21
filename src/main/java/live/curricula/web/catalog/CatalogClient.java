@@ -1,10 +1,13 @@
 package live.curricula.web.catalog;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestClient;
 
@@ -13,7 +16,10 @@ public class CatalogClient {
     private final RestClient client;
 
     public CatalogClient(@Value("${curricula.api.base-url:http://localhost:8081}") String origin) {
-        client = RestClient.builder().baseUrl(origin).build();
+        var http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
+        var requests = new JdkClientHttpRequestFactory(http);
+        requests.setReadTimeout(Duration.ofSeconds(7));
+        client = RestClient.builder().baseUrl(origin).requestFactory(requests).build();
     }
 
     public SearchResults search(String query) {
@@ -64,6 +70,26 @@ public class CatalogClient {
                 .queryParamIfPresent("predicate", predicate.isEmpty() ? Optional.empty() : Optional.of("{predicate}"))
                 .build(Map.of("slug", slug, "domain", domain, "predicate", predicate)))
                 .retrieve().body(Neighborhood.class);
+    }
+
+    public ConceptDocumentation documentation(String slug) {
+        return client.get().uri("/api/v1/concepts/{slug}/documentation", slug)
+                .retrieve().body(ConceptDocumentation.class);
+    }
+
+    public Scholarly.Page<Scholarly.Source> sources(int offset, String publication) {
+        return client.get().uri(builder -> builder.path("/api/v1/scholarly/sources")
+                .queryParam("offset", offset)
+                .queryParamIfPresent("publication", Optional.ofNullable(publication)).build())
+                .retrieve().body(new ParameterizedTypeReference<Scholarly.Page<Scholarly.Source>>() {});
+    }
+
+    public Scholarly.Page<Scholarly.Citation> citations(String source, String slug, int offset, String publication) {
+        return client.get().uri(builder -> {
+            builder.queryParam("offset", offset).queryParamIfPresent("publication", Optional.ofNullable(publication));
+            if (slug != null) return builder.path("/api/v1/concepts/{slug}/evidence").build(slug);
+            return builder.path("/api/v1/scholarly/assertions").queryParam("source", "{source}").build(source);
+        }).retrieve().body(new ParameterizedTypeReference<Scholarly.Page<Scholarly.Citation>>() {});
     }
 
     public PublicationStatus publication() {

@@ -21,4 +21,9 @@ jobs:
         env:
           MVNW_VERBOSE: "true"
         run: ./mvnw --version
-      - run: ./mvnw -B -ntp -e verify
+      - name: Download pinned public graph archive
+        run: bash scripts/fetch-graph-archive.sh
+      - name: Verify Java and public graph archive
+        env:
+          CURRICULA_TEST_ARCHIVE_PATH: target/graph-archive.json
+        run: ./mvnw -B -ntp -e verify

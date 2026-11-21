@@ -5,6 +5,7 @@ import java.net.URI;
 import java.util.List;
 import live.curricula.web.catalog.CatalogClient;
 import live.curricula.web.catalog.Evidence;
+import live.curricula.web.catalog.GraphArchive;
 import live.curricula.web.catalog.Neighborhood;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,12 @@ public class PagesController {
     private static final List<String> KINDS = List.of("all", "scientific", "taxonomy", "association", "mapping", "other");
     private final CatalogClient client;
 
-    public PagesController(CatalogClient client) { this.client = client; }
+    private final GraphArchive archive;
+
+    public PagesController(CatalogClient client, GraphArchive archive) {
+        this.client = client;
+        this.archive = archive;
+    }
 
     @GetMapping("/")
     public String home(Model model) {
@@ -71,7 +77,12 @@ public class PagesController {
         model.addAttribute("conceptsUnavailable", false);
         model.addAttribute("connectionsUnavailable", false);
         model.addAttribute("connectionsInvalid", false);
-        if (query.isBlank()) return;
+        model.addAttribute("archiveAvailable", archive.available());
+        model.addAttribute("archiveResults", List.of());
+        boolean invalidQuery = query.codePointCount(0, query.length()) > 160;
+        model.addAttribute("invalidQuery", invalidQuery);
+        if (query.isBlank() || invalidQuery) return;
+        if (!category.equals("connections")) model.addAttribute("archiveResults", archive.search(query));
 
         if (!category.equals("connections")) {
             try {
@@ -97,15 +108,34 @@ public class PagesController {
     public String concept(@PathVariable String slug, @RequestParam(defaultValue = "overview") String view,
                           Model model, HttpServletResponse response) {
         model.addAttribute("slug", slug);
-        model.addAttribute("connectionsView", "connections".equals(view));
+        String activeView = switch (view) {
+            case "connections", "curriculum", "pedagogical" -> view;
+            default -> "overview";
+        };
+        model.addAttribute("activeView", activeView);
+        model.addAttribute("connectionsView", "connections".equals(activeView));
+        model.addAttribute("definitions", List.of());
+        model.addAttribute("documentationUnavailable", false);
         model.addAttribute("concept", null);
         model.addAttribute("relations", List.of());
         model.addAttribute("evidence", List.of());
         model.addAttribute("unavailable", false);
         try {
             model.addAttribute("concept", client.concept(slug));
-            model.addAttribute("relations", client.relationships(slug, "all"));
-            model.addAttribute("evidence", client.provenance(slug));
+            if ("overview".equals(activeView) || "connections".equals(activeView)) {
+                model.addAttribute("relations", client.relationships(slug, "all"));
+                model.addAttribute("evidence", client.provenance(slug));
+            }
+            if ("overview".equals(activeView) || "pedagogical".equals(activeView)) {
+                try {
+                    var documentation = client.documentation(slug);
+                    if (documentation != null && documentation.definitions() != null) {
+                        model.addAttribute("definitions", documentation.definitions());
+                    }
+                } catch (RestClientException exception) {
+                    model.addAttribute("documentationUnavailable", true);
+                }
+            }
         } catch (HttpClientErrorException.NotFound exception) {
             response.setStatus(HttpStatus.NOT_FOUND.value());
         } catch (RestClientException exception) {
@@ -115,12 +145,21 @@ public class PagesController {
         return "concept";
     }
 
-    @GetMapping("/graph")
+    @GetMapping(value = "/graph", params = "!concept")
+    public String graphChooser(@RequestParam(defaultValue = "") String q, Model model) {
+        populateSearch(q.strip(), "concepts", model);
+        return "graph-chooser";
+    }
+
+    @GetMapping(value = "/graph", params = "concept")
     public ResponseEntity<Void> graphEntry(@RequestParam(defaultValue = "") String concept) {
+        if (GraphArchive.isLegacyIri(concept)) {
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(GraphArchive.legacyUrl(concept))).build();
+        }
         if (!concept.isBlank() && !concept.matches("[a-z0-9][-a-z0-9]{0,127}")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter a canonical concept slug");
         }
-        String path = concept.isBlank() ? "/search" : "/concepts/" + concept + "/graph";
+        String path = concept.isBlank() ? "/graph" : "/concepts/" + concept + "/graph";
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(path)).build();
     }
 

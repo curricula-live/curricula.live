@@ -13,10 +13,32 @@
   <h1 th:text="${concept.label}">Concept label</h1>
   <p class="iri" th:text="${concept.iri}">IRI</p>
   <nav class="concept-nav" aria-label="Concept views">
-    <a th:href="@{/concepts/{slug}(slug=${slug})}" th:attr="aria-current=${!connectionsView ? 'page' : null}">Overview</a>
+    <a th:href="@{/concepts/{slug}(slug=${slug})}" th:attr="aria-current=${activeView == 'overview' ? 'page' : null}">Overview</a>
     <a th:href="@{/concepts/{slug}(slug=${slug},view='connections')}" th:attr="aria-current=${connectionsView ? 'page' : null}">Connections</a>
+    <a th:href="@{/concepts/{slug}(slug=${slug},view='curriculum')}" th:attr="aria-current=${activeView == 'curriculum' ? 'page' : null}">Curriculum</a>
+    <a th:href="@{/concepts/{slug}(slug=${slug},view='pedagogical')}" th:attr="aria-current=${activeView == 'pedagogical' ? 'page' : null}">Pedagogical</a>
+    <a th:href="@{/concepts/{slug}/evidence(slug=${slug})}">Browse citations</a>
     <a th:href="@{/concepts/{slug}/graph(slug=${slug})}">Explore relationship graph</a>
   </nav>
+  <section class="section" th:if="${activeView == 'overview' || activeView == 'pedagogical'}">
+    <h2>Definitions</h2>
+    <p th:if="${documentationUnavailable}" role="status">Definitions are temporarily unavailable.</p>
+    <p th:if="${!documentationUnavailable && definitions.isEmpty()}">The active publication has no recorded definition for this concept.</p>
+    <ul class="results" th:unless="${definitions.isEmpty()}">
+      <li th:each="definition : ${definitions}" th:lang="${definition.language.isEmpty() ? null : definition.language}"
+          th:text="${definition.text}">Definition</li>
+    </ul>
+  </section>
+  <section class="section" th:if="${activeView == 'curriculum'}">
+    <h2>Curriculum</h2>
+    <p>Curriculum mappings and prerequisites require published, reviewed data.</p>
+  </section>
+  <section class="section" th:if="${activeView == 'pedagogical'}">
+    <h2>Pedagogical</h2>
+    <p>Teacher-facing notes for this concept have yet to be published.</p>
+    <p><a th:href="@{/concepts/{slug}/evidence(slug=${slug})}">Review the recorded citations</a> for source material.</p>
+  </section>
+  <th:block th:if="${activeView == 'overview' || connectionsView}">
   <section class="section" id="connections" th:classappend="${connectionsView} ? 'section-current'">
     <h2>Scientific relationships</h2>
     <p>Recorded directional scientific assertions; these are not derived from taxonomic proximity.</p>
@@ -57,5 +79,7 @@
       </li>
     </ul>
   </section>
+  </th:block>
 </article>
-</main></body></html>
+</main><div th:replace="~{fragments/footer :: footer}"></div>
+</body></html>

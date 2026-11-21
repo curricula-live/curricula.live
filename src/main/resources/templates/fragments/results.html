@@ -1,7 +1,8 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org"><body>
 <section th:fragment="results" id="search-results" aria-live="polite">
-    <section th:if="${searched and category != 'connections'}" aria-labelledby="concept-results-title">
+    <p th:if="${invalidQuery}" class="notice" role="status">Enter at most 160 characters.</p>
+    <section th:if="${searched and !invalidQuery and category != 'connections'}" aria-labelledby="concept-results-title">
         <h2 id="concept-results-title">Concepts</h2>
         <p th:if="${conceptsUnavailable}" class="notice" role="status">Concept search is temporarily unavailable. Check whether the knowledge dataset is connected.</p>
         <p th:if="${!conceptsUnavailable and #lists.isEmpty(results)}" class="notice">No matching concepts.</p>
@@ -12,7 +13,7 @@
             </li>
         </ul>
     </section>
-    <section th:if="${searched and category != 'concepts'}" aria-labelledby="connection-results-title">
+    <section th:if="${searched and !invalidQuery and category != 'concepts'}" aria-labelledby="connection-results-title">
         <h2 id="connection-results-title">Connections</h2>
         <p th:if="${connectionsUnavailable}" class="notice" role="status">Connection search is temporarily unavailable.</p>
         <p th:if="${connectionsInvalid}" class="notice" role="status">Enter searchable text of at most 160 characters.</p>
@@ -29,5 +30,8 @@
             </li>
         </ul>
     </section>
+    <th:block th:if="${searched && !invalidQuery && category != 'connections'}">
+        <div th:replace="~{fragments/archive-results :: archive}"></div>
+    </th:block>
 </section>
 </body></html>
