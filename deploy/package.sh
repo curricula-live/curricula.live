@@ -37,6 +37,10 @@ package() {
   output=$(mktemp "$context/.jar.XXXXXX")
   install -m 0644 "${jars[0]}" "$output"
   install -m 0644 "$deploy_dir/healthcheck.sh" "$context/healthcheck.sh"
+  if [[ $service == api && -f "$scratch/api/src/main/resources/db/planning/001-initial.sql" ]]; then
+    install -m 0644 "$scratch/api/src/main/resources/db/planning/001-initial.sql" "$context/001-planning.sql"
+    install -m 0755 "$deploy_dir/planning-init.sh" "$context/planning-init.sh"
+  fi
   touch "$context/.volume-root"
   mv -f "$output" "$context/app.jar"
 }

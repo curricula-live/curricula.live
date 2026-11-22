@@ -1,0 +1,81 @@
+services:
+  api:
+    environment:
+      CURRICULA_PLANNING_ENABLED: "true"
+      CURRICULA_PLANNING_ISSUER: "${PLANNING_ISSUER:?Set the approved HTTPS OIDC issuer}"
+      CURRICULA_PLANNING_AUDIENCE: "${PLANNING_AUDIENCE:?Set the planning API token audience}"
+      CURRICULA_PLANNING_DB_URL: jdbc:postgresql://postgres:5432/curricula_planning
+      CURRICULA_PLANNING_DB_USER: curricula_planner
+      CURRICULA_PLANNING_DB_PASSWORD_FILE: /run/secrets/planning_db_password
+    secrets: [planning_db_password]
+    networks: [private, planning_data, identity_egress]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    environment:
+      CURRICULA_PLANNING_ENABLED: "true"
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_PLANNING_ISSUER_URI: "${PLANNING_ISSUER:?Set the approved HTTPS OIDC issuer}"
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_PLANNING_CLIENT_ID: "${PLANNING_CLIENT_ID:?Set the approved OIDC client ID}"
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_PLANNING_SCOPE: "openid,curricula.planning"
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_PLANNING_REDIRECT_URI: "${PLANNING_REDIRECT_URI:?Set the approved HTTPS callback URL}"
+      SPRING_CONFIG_IMPORT: configtree:/run/secrets/
+    secrets:
+      - source: planning_oidc_client_secret
+        target: spring.security.oauth2.client.registration.planning.client-secret
+
+  postgres:
+    image: postgres:17@sha256:b60e90042aa6b8dbecd58e224b3e36114dbf8ad754465264c2476ad58a86e45c
+    platform: "${STAGING_PLATFORM:-linux/arm64}"
+    environment:
+      POSTGRES_USER: curricula_migrations
+      POSTGRES_DB: curricula_planning
+      POSTGRES_PASSWORD_FILE: /run/secrets/planning_admin_password
+    secrets: [planning_admin_password, planning_db_password]
+    networks: [planning_data]
+    volumes:
+      - planning-data:/var/lib/postgresql/data
+      - type: bind
+        source: ./.build/api/${API_REVISION:?Pin the API commit}/planning-init.sh
+        target: /docker-entrypoint-initdb.d/10-curricula-planning.sh
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./.build/api/${API_REVISION:?Pin the API commit}/001-planning.sql
+        target: /opt/curricula/001-planning.sql
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          PGPASSWORD="$$(cat /run/secrets/planning_db_password)"
+          psql -h 127.0.0.1 -U curricula_planner -d curricula_planning
+          -v ON_ERROR_STOP=1 -Atqc 'SELECT 1 FROM curricula_planning.lesson_plan LIMIT 0'
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    mem_limit: "${PLANNING_MEMORY_LIMIT:-1g}"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+secrets:
+  planning_admin_password:
+    file: "${PLANNING_ADMIN_PASSWORD_PATH:?Provide a protected migrations password file}"
+  planning_db_password:
+    file: "${PLANNING_DB_PASSWORD_PATH:?Provide a protected planning runtime password file}"
+  planning_oidc_client_secret:
+    file: "${PLANNING_OIDC_SECRET_PATH:?Provide a protected OIDC client secret file}"
+
+networks:
+  planning_data:
+    internal: true
+  identity_egress:
+
+volumes:
+  planning-data:

@@ -101,3 +101,42 @@ persisted=("${stack[@]}" -f deploy/compose.persisted.yaml)
 ```
 
 Confirm the previously active publication's commit and manifest digest. Keep the override enabled until the explicitly reviewed activation of another package.
+
+## Additional ontology producers
+
+Set `CURRICULA_RDF_PRODUCERS` and, for explicitly reviewed educational sources, `CURRICULA_RDF_EDUCATION_PRODUCERS` in the same staging configuration used by maintenance and startup. Stop the API before changing a producer. Use the persisted-state override and mount a single verified package under `/candidate` as read-only for the offline `rdf-import` command. Supply the producer ID, package directory, manifest SHA-256 and producer commit. A subsequent `rdf-rollback <producer-id>` affects that producer alone. Review each active manifest via the internal publication index before serving user traffic.
+
+## Optional teacher planning
+
+The base stack starts the public application. Enable the planning override only after approving an identity provider, client, and staging audience. Set these in the staging configuration:
+
+- `PLANNING_ISSUER` for the approved HTTPS OIDC issuer.
+- `PLANNING_AUDIENCE` for the dedicated API access-token audience.
+- `PLANNING_CLIENT_ID` and `PLANNING_REDIRECT_URI` for the confidential web client and its exact HTTPS callback ending in `/login/oauth2/code/planning`.
+- `PLANNING_ADMIN_PASSWORD_PATH`, `PLANNING_DB_PASSWORD_PATH`, and `PLANNING_OIDC_SECRET_PATH` for separate secret files. Keep them outside Git in a protected directory. Each file must be readable by its container process when mounted.
+
+Configure authorization-code login with `openid curricula.planning`, restricted to the approved staging cohort. The provider must issue an RS256 access token with the same issuer and subject as the OIDC identity, the dedicated API audience and the planning scope. Register the callback against the staging hostname. Append `-f deploy/compose.planning.yaml` to the Compose command after packaging the two commits. Add the archive override separately if needed.
+
+PostgreSQL listens on the internal planning data network. The web service cannot reach that network. The API gets its own outbound network for issuer discovery and signing keys, and retains no published host port. The browser receives a Secure, HttpOnly, SameSite=Lax session cookie. Planning pages should bypass proxy caching. Keep the runtime role separate from the owner of the schema and database. The first PostgreSQL start initializes the schema and grants the application role only the privileges used by the planning store. Existing volumes need reviewed migrations as the schema evolves.
+
+### Back up and restore planning data
+
+Use the exact migration revision that created the source schema. Dump the planning schema data from the running database with the migrations role. Store the archive and its checksum off the VM over an encrypted channel. Restrict access to the archive because it contains user data.
+
+```bash
+umask 077
+"${stack[@]}" exec -T postgres pg_dump -U curricula_migrations -d curricula_planning \
+  --format=custom --data-only --schema=curricula_planning > "$backup"
+sha256sum "$backup" > "$backup.sha256"
+```
+
+Start PostgreSQL alone in a **new Compose project** with an empty planning volume and the matching packaged schema. Verify the checksum, then load the archive into that separate database using its migrations identity.
+
+```bash
+sha256sum -c "$backup.sha256"
+"${restore[@]}" up -d --wait postgres
+"${restore[@]}" exec -T postgres pg_restore -U curricula_migrations -d curricula_planning \
+  --data-only --single-transaction --exit-on-error --no-owner --no-privileges < "$backup"
+```
+
+Verify schema revision, row counts and owner-scoped access using disposable test identities before approving any restore for service use. Keep PostgreSQL and RDF backups independent. The RDF volume includes the `producers/` directories when additional ontologies are configured.
