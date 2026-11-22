@@ -15,7 +15,7 @@
   const maxNodes = 200;
   const maxEdges = 200;
 
-  const rootSlug = app.dataset.slug;
+  const rootSlug = app.dataset.slug || app.dataset.iri;
   const facets = { domains: new Set(), predicates: new Set() };
   let graph;
   let canvas;
@@ -52,6 +52,15 @@
 
   function endpoint(slug, suffix) {
     return "/concepts/" + encodeURIComponent(slug) + suffix;
+  }
+
+  function graphRequest(id, operation, params) {
+    if (id.includes(":")) {
+      const query = new URLSearchParams(params);
+      query.set("iri", id);
+      return "/graph/by-iri/" + operation + "?" + query;
+    }
+    return endpoint(id, "/graph/" + operation + "?") + params;
   }
 
   async function requestJson(url, signal) {
@@ -127,7 +136,7 @@
     updateExpandButton();
     const params = filters(hops);
     try {
-      const next = await requestJson(endpoint(slug, "/graph/data?") + params, request.signal);
+      const next = await requestJson(graphRequest(slug, "data", params), request.signal);
       if (request.signal.aborted) return;
       const originalFilters = graph?.filters;
       graph = mergeNeighborhood(next, expand ? graph : null);
@@ -286,14 +295,14 @@
       metadata(fields, "Domains", detail.domains.map(iriLabel).join(", "));
       inspector.append(fields);
     }
-    if (detail?.slug) {
+    if (detail?.iri) {
       const link = html("a", "Open concept");
-      link.href = endpoint(detail.slug, "");
+      link.href = detail.slug ? endpoint(detail.slug, "") : "/concepts/by-iri?" + new URLSearchParams({ iri });
       const button = html("button", "Expand one hop");
       button.type = "button";
       button.dataset.expand = "";
       button.addEventListener("click", async () => {
-        await load(detail.slug, "1", true);
+        await load(detail.slug || iri, "1", true);
         if (selection.node === iri && document.activeElement === document.body) {
           inspector.querySelector("[data-expand]:enabled")?.focus();
         }
@@ -339,13 +348,13 @@
     const evidence = html("section", "", "graph-evidence");
     evidence.append(html("h3", "Provenance"));
     inspector.append(heading, fields, evidence);
-    const subjectSlug = graph.details.get(edge.subject)?.slug;
-    if (!subjectSlug) {
+    const subjectDetail = graph.details.get(edge.subject);
+    if (!subjectDetail) {
       evidence.append(html("p", "Provenance lookup is unavailable for this subject."));
       return;
     }
     const params = new URLSearchParams({ predicate: edge.predicate, object: edge.object });
-    displayEvidence(evidence, endpoint(subjectSlug, "/graph/evidence?") + params);
+    displayEvidence(evidence, graphRequest(subjectDetail.slug || edge.subject, "evidence", params));
   }
 
   async function displayEvidence(section, url) {

@@ -69,6 +69,10 @@ public class PagesController {
     }
 
     private void populateSearch(String query, String category, Model model) {
+        populateSearch(query, category, model, false);
+    }
+
+    private void populateSearch(String query, String category, Model model, boolean acrossProducers) {
         model.addAttribute("query", query);
         model.addAttribute("category", category);
         model.addAttribute("searched", !query.isBlank());
@@ -86,7 +90,7 @@ public class PagesController {
 
         if (!category.equals("connections")) {
             try {
-                var result = client.search(query);
+                var result = acrossProducers ? client.searchAcross(query) : client.search(query);
                 if (result != null && result.concepts() != null) model.addAttribute("results", result.concepts());
             } catch (RestClientException exception) {
                 model.addAttribute("conceptsUnavailable", true);
@@ -121,7 +125,11 @@ public class PagesController {
         model.addAttribute("evidence", List.of());
         model.addAttribute("unavailable", false);
         try {
-            model.addAttribute("concept", client.concept(slug));
+            var resolved = client.concept(slug);
+            model.addAttribute("concept", resolved);
+            if (resolved != null && ("curriculum".equals(activeView) || "pedagogical".equals(activeView))) {
+                addEducation(resolved.iri(), model);
+            }
             if ("overview".equals(activeView) || "connections".equals(activeView)) {
                 model.addAttribute("relations", client.relationships(slug, "all"));
                 model.addAttribute("evidence", client.provenance(slug));
@@ -147,7 +155,7 @@ public class PagesController {
 
     @GetMapping(value = "/graph", params = "!concept")
     public String graphChooser(@RequestParam(defaultValue = "") String q, Model model) {
-        populateSearch(q.strip(), "concepts", model);
+        populateSearch(q.strip(), "concepts", model, true);
         return "graph-chooser";
     }
 
@@ -155,6 +163,11 @@ public class PagesController {
     public ResponseEntity<Void> graphEntry(@RequestParam(defaultValue = "") String concept) {
         if (GraphArchive.isLegacyIri(concept)) {
             return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(GraphArchive.legacyUrl(concept))).build();
+        }
+        if (isCanonicalCandidate(concept)) {
+            URI path = UriComponentsBuilder.fromPath("/graph/by-iri").queryParam("iri", "{iri}")
+                    .encode().buildAndExpand(concept).toUri();
+            return ResponseEntity.status(HttpStatus.FOUND).location(path).build();
         }
         if (!concept.isBlank() && !concept.matches("[a-z0-9][-a-z0-9]{0,127}")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter a canonical concept slug");
@@ -177,6 +190,74 @@ public class PagesController {
         return "graph";
     }
 
+    @GetMapping("/graph/by-iri")
+    public String graphByIri(@RequestParam String iri, Model model, HttpServletResponse response) {
+        addCanonical(iri, model, response);
+        return "graph";
+    }
+
+    @GetMapping("/concepts/by-iri")
+    public String canonicalConcept(@RequestParam String iri, Model model, HttpServletResponse response) {
+        addCanonical(iri, model, response);
+        if (model.getAttribute("concept") != null) addEducation(iri, model);
+        return "canonical-concept";
+    }
+
+    private void addCanonical(String iri, Model model, HttpServletResponse response) {
+        if (!isCanonicalCandidate(iri)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Expected a canonical HTTP(S) IRI");
+        model.addAttribute("iri", iri);
+        model.addAttribute("unavailable", false);
+        try { model.addAttribute("concept", client.conceptByIri(iri)); }
+        catch (HttpClientErrorException.NotFound failure) { response.setStatus(404); }
+        catch (RestClientException failure) {
+            model.addAttribute("unavailable", true);
+            response.setStatus(503);
+        }
+    }
+
+    private void addEducation(String iri, Model model) {
+        try { model.addAttribute("education", client.education(iri)); }
+        catch (RestClientException failure) { model.addAttribute("educationUnavailable", true); }
+    }
+
+    @ResponseBody
+    @GetMapping("/graph/by-iri/data")
+    public Neighborhood graphDataByIri(@RequestParam String iri, @RequestParam(defaultValue = "2") int depth,
+                                       @RequestParam(defaultValue = "all") String graph,
+                                       @RequestParam(defaultValue = "all") String kind,
+                                       @RequestParam(defaultValue = "") String domain,
+                                       @RequestParam(defaultValue = "") String predicate) {
+        if (!isCanonicalCandidate(iri)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid concept IRI");
+        validateGraphRequest(depth, graph, kind, domain, predicate);
+        return catalogResult(() -> client.neighborhoodByIri(iri, depth, graph, kind, domain, predicate));
+    }
+
+    @ResponseBody
+    @GetMapping("/graph/by-iri/evidence")
+    public List<Evidence> evidenceByIri(@RequestParam String iri, @RequestParam String predicate,
+                                        @RequestParam String object) {
+        if (!isCanonicalCandidate(iri) || !isAbsoluteIri(predicate) || !isAbsoluteIri(object)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid evidence IRIs");
+        }
+        return catalogResult(() -> client.edgeProvenanceByIri(iri, predicate, object));
+    }
+
+    private static <T> T catalogResult(java.util.function.Supplier<T> request) {
+        try { return request.get(); }
+        catch (HttpClientErrorException.NotFound failure) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Concept not found");
+        } catch (HttpClientErrorException.BadRequest failure) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid graph request");
+        } catch (RestClientException failure) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Knowledge API unavailable");
+        }
+    }
+
+    private static boolean isCanonicalCandidate(String value) {
+        return isAbsoluteIri(value) && (value.startsWith("https://") || value.startsWith("http://"))
+                && value.contains("/concept/") && !GraphArchive.isLegacyIri(value);
+    }
+
     @ResponseBody
     @GetMapping("/concepts/{slug}/graph/data")
     public Neighborhood graphData(@PathVariable String slug,
@@ -185,6 +266,11 @@ public class PagesController {
                                   @RequestParam(defaultValue = "all") String kind,
                                   @RequestParam(defaultValue = "") String domain,
                                   @RequestParam(defaultValue = "") String predicate) {
+        validateGraphRequest(depth, graph, kind, domain, predicate);
+        return catalogResult(() -> client.neighborhood(slug, depth, graph, kind, domain, predicate));
+    }
+
+    private static void validateGraphRequest(int depth, String graph, String kind, String domain, String predicate) {
         if (depth < 1 || depth > 5) throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST, "Depth must be 1..5");
         if (!GRAPHS.contains(graph) || !KINDS.contains(kind)) {
@@ -193,14 +279,6 @@ public class PagesController {
         if ((!domain.isEmpty() && !isAbsoluteIri(domain)) ||
                 (!predicate.isEmpty() && !isAbsoluteIri(predicate))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Domain and predicate must be absolute IRIs");
-        }
-        try { return client.neighborhood(slug, depth, graph, kind, domain, predicate); }
-        catch (HttpClientErrorException.NotFound exception) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Concept not found");
-        } catch (HttpClientErrorException.BadRequest exception) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid neighborhood filter");
-        } catch (RestClientException exception) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Knowledge API unavailable");
         }
     }
 
@@ -211,14 +289,7 @@ public class PagesController {
         if (!isAbsoluteIri(predicate) || !isAbsoluteIri(object)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Predicate and object must be absolute IRIs");
         }
-        try { return client.edgeProvenance(slug, predicate, object); }
-        catch (HttpClientErrorException.NotFound exception) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Concept not found");
-        } catch (HttpClientErrorException.BadRequest exception) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid provenance lookup");
-        } catch (RestClientException exception) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Knowledge API unavailable");
-        }
+        return catalogResult(() -> client.edgeProvenance(slug, predicate, object));
     }
 
     private static boolean isAbsoluteIri(String value) {

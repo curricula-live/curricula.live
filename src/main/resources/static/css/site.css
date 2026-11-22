@@ -136,3 +136,39 @@ h1{font-size:clamp(2.4rem,5.5vw,4.4rem);line-height:1.1;letter-spacing:-.05em;ma
   padding-block: 1rem 2rem;
   border-top: 1px solid var(--border, #d9e0e5);
 }
+
+.plan-form {
+  display: grid;
+  gap: .55rem;
+  max-width: 38rem;
+}
+
+.plan-form button { justify-self: start; }
+.plan-form input { min-width: 0; width: 100%; box-sizing: border-box; }
+
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  z-index: 1;
+  padding: .5rem 1rem;
+  background: white;
+  color: var(--blue);
+  transform: translateY(-150%);
+}
+
+.skip-link:focus { transform: translateY(0); }
+
+:where(a, button, input, select, summary):focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.site-footer { min-height: 0; }
+.graph-filters label, .graph-filters select, #graph-app { min-width: 0; }
+.graph-filters select { max-width: 100%; text-overflow: ellipsis; }
+
+@media (max-width: 600px) {
+  .header, .header nav { flex-wrap: wrap; gap: .55rem 1rem; }
+  main h1 { overflow-wrap: anywhere; }
+}

@@ -4,7 +4,7 @@
 <title>Graph explorer — curricula.live</title><link rel="stylesheet" href="/css/site.css"></head>
 <body>
 <div th:replace="~{fragments/header :: header}"></div>
-<main class="container">
+<main id="content" tabindex="-1" class="container">
 <h1>Graph explorer</h1>
 <form method="get" action="/graph">
   <label for="graph-query">Find a starting concept</label>
@@ -16,7 +16,7 @@
   <p th:if="${conceptsUnavailable}" role="status">Canonical search is temporarily unavailable.</p>
   <p th:if="${!conceptsUnavailable && results.isEmpty()}">No matching canonical concepts.</p>
   <ul th:unless="${results.isEmpty()}" class="results">
-    <li th:each="concept : ${results}"><a th:href="@{/concepts/{slug}/graph(slug=${concept.slug})}" th:text="${concept.label}">Concept graph</a></li>
+    <li th:each="concept : ${results}"><a th:href="@{/graph/by-iri(iri=${concept.iri})}" th:text="${concept.label}">Concept graph</a><span class="iri" th:text="${concept.iri}"></span></li>
   </ul>
   <div th:replace="~{fragments/archive-results :: archive}"></div>
 </th:block>

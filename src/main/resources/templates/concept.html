@@ -4,7 +4,7 @@
 <title th:text="|Concept — ${slug} — curricula.live|">Concept</title>
 <link rel="stylesheet" href="/css/site.css"></head>
 <body><div th:replace="~{fragments/header :: header}"></div>
-<main class="container">
+<main id="content" tabindex="-1" class="container">
 <a href="/search">Back to search</a>
 <p th:if="${unavailable}" class="notice" role="status">The validated knowledge service is currently unavailable.</p>
 <p th:if="${concept == null and !unavailable}" class="notice">Concept not found.</p>
@@ -31,11 +31,11 @@
   </section>
   <section class="section" th:if="${activeView == 'curriculum'}">
     <h2>Curriculum</h2>
-    <p>Curriculum mappings and prerequisites require published, reviewed data.</p>
+    <div th:replace="~{fragments/education :: curriculum}"></div>
   </section>
   <section class="section" th:if="${activeView == 'pedagogical'}">
     <h2>Pedagogical</h2>
-    <p>Teacher-facing notes for this concept have yet to be published.</p>
+    <div th:replace="~{fragments/education :: pedagogy}"></div>
     <p><a th:href="@{/concepts/{slug}/evidence(slug=${slug})}">Review the recorded citations</a> for source material.</p>
   </section>
   <th:block th:if="${activeView == 'overview' || connectionsView}">

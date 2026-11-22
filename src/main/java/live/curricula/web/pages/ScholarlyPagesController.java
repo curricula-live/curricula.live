@@ -24,26 +24,41 @@ public final class ScholarlyPagesController {
     public String evidence(@RequestParam(required = false) String source,
                            @RequestParam(defaultValue = "0") int offset,
                            @RequestParam(required = false) String publication,
+                           @RequestParam(defaultValue = "formal-sciences") String producer,
                            Model model, HttpServletResponse response) {
-        return render(source, null, offset, publication, model, response);
+        return render(source, null, offset, publication, producer, model, response);
     }
 
     @GetMapping("/concepts/{slug}/evidence")
     public String conceptEvidence(@PathVariable String slug, @RequestParam(defaultValue = "0") int offset,
                                   @RequestParam(required = false) String publication,
                                   Model model, HttpServletResponse response) {
-        return render(null, slug, offset, publication, model, response);
+        return render(null, slug, offset, publication, "formal-sciences", model, response);
     }
 
-    private String render(String source, String slug, int offset, String pin,
+    private String render(String source, String slug, int offset, String pin, String producer,
                           Model model, HttpServletResponse response) {
         boolean listing = source == null && slug == null;
         model.addAttribute("source", source);
         model.addAttribute("slug", slug);
         model.addAttribute("listing", listing);
         model.addAttribute("offset", offset);
+        boolean formal = "formal-sciences".equals(producer);
+        model.addAttribute("producer", formal ? null : producer);
+        if (listing) {
+            try {
+                var available = client.publications();
+                if (available != null) model.addAttribute("availableProducers", available.entrySet().stream()
+                        .filter(entry -> entry.getValue().available()).map(java.util.Map.Entry::getKey).sorted().toList());
+            } catch (RestClientException ignored) {
+                // A failure to load the selector does not invalidate a pinned citation page.
+            }
+        }
         try {
-            var page = listing ? client.sources(offset, pin) : client.citations(source, slug, offset, pin);
+            var page = listing
+                    ? (formal ? client.sources(offset, pin) : client.sources(producer, offset, pin))
+                    : (formal ? client.citations(source, slug, offset, pin)
+                              : client.citationsByProducer(producer, source, offset, pin));
             model.addAttribute("page", page);
             if (source != null && page != null && !page.results().isEmpty()) {
                 URI recorded = URI.create(source);

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Edit plan — curricula.live</title><link rel="stylesheet" href="/css/site.css"></head>
+<body><div th:replace="~{fragments/header :: header}"></div>
+<main id="content" tabindex="-1" class="container">
+  <p><a href="/teach">Back to your plans</a></p>
+  <h1>Edit plan</h1>
+  <form method="post" th:action="@{/teach/{id}(id=${plan.id})}" class="plan-form">
+    <input type="hidden" name="revision" th:value="${plan.revision}">
+    <label for="title">Plan title</label><input id="title" name="title" maxlength="200" th:value="${plan.title}" required>
+    <label for="conceptIri">Canonical concept IRI</label>
+    <input id="conceptIri" name="conceptIri" type="url" maxlength="2048" th:value="${plan.conceptIri}" required>
+    <button type="submit">Save changes</button>
+  </form>
+</main><div th:replace="~{fragments/footer :: footer}"></div></body></html>

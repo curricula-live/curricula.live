@@ -4,19 +4,27 @@
 <title>Scholarly evidence — curricula.live</title><link rel="stylesheet" href="/css/site.css"></head>
 <body>
 <div th:replace="~{fragments/header :: header}"></div>
-<main class="container">
+<main id="content" tabindex="-1" class="container">
   <h1>Scholarly evidence</h1>
+  <form th:if="${listing && availableProducers != null && availableProducers.size() > 1}" action="/evidence" method="get">
+    <label for="producer">Ontology publication</label>
+    <select id="producer" name="producer">
+      <option th:each="id : ${availableProducers}" th:value="${id}" th:text="${id}"
+              th:selected="${id == (producer == null ? 'formal-sciences' : producer)}"></option>
+    </select>
+    <button type="submit">Browse sources</button>
+  </form>
   <p><a th:if="${slug != null}" th:href="@{/concepts/{slug}(slug=${slug})}">Back to concept</a>
-    <a th:if="${!listing}" href="/evidence">Browse all sources</a></p>
+    <a th:if="${!listing}" th:href="${producer == null} ? @{/evidence} : @{/evidence(producer=${producer})}">Browse all sources</a></p>
   <p th:if="${source != null}" class="iri" th:text="${source}">Source</p>
   <p th:if="${sourceLink != null}"><a th:href="${sourceLink}" rel="noreferrer">Open cited source</a></p>
   <p th:if="${message != null}" role="status" class="notice" th:text="${message}">Evidence status</p>
   <th:block th:if="${page != null}">
-    <p th:text="|Formal Sciences v${page.version}|">Publication</p>
+    <p th:text="|${producer == null ? 'Formal Sciences' : producer} v${page.version}|">Publication</p>
     <p th:if="${page.results.isEmpty()}" role="status">No recorded citations on this page.</p>
     <ul class="results" th:if="${listing && !page.results.isEmpty()}">
       <li th:each="item : ${page.results}">
-        <a th:href="@{/evidence(source=${item.iri},publication=${page.manifestSha256})}" class="iri" th:text="${item.iri}">Source</a>
+        <a th:href="${producer == null} ? @{/evidence(source=${item.iri},publication=${page.manifestSha256})} : @{/evidence(source=${item.iri},publication=${page.manifestSha256},producer=${producer})}" class="iri" th:text="${item.iri}">Source</a>
         <span th:text="|${item.assertions} recorded assertions|">Assertion count</span>
       </li>
     </ul>
@@ -30,7 +38,7 @@
              th:href="@{/concepts/{slug}(slug=${item.objectSlug})}" th:text="${item.objectSlug}">Object</a>
           <span th:if="${item.objectSlug == null}" class="iri" th:text="${item.object.value}">Object value</span>
         </span>
-        <a th:href="@{/evidence(source=${item.sourceIri},publication=${page.manifestSha256})}"
+        <a th:href="${producer == null} ? @{/evidence(source=${item.sourceIri},publication=${page.manifestSha256})} : @{/evidence(source=${item.sourceIri},publication=${page.manifestSha256},producer=${producer})}"
            class="iri" th:text="${item.sourceIri}">Source IRI</a>
         <details><summary>RDF identifiers</summary>
           <p class="iri" th:text="${item.assertionIri}">Assertion IRI</p>
@@ -42,15 +50,15 @@
     </ol>
     <nav class="concept-nav" aria-label="Evidence pages" th:if="${offset > 0 || page.nextOffset != null}">
       <a th:if="${offset > 0 && listing}"
-         th:href="@{/evidence(publication=${page.manifestSha256})}">First page</a>
+         th:href="${producer == null} ? @{/evidence(publication=${page.manifestSha256})} : @{/evidence(publication=${page.manifestSha256},producer=${producer})}">First page</a>
       <a th:if="${offset > 0 && source != null}"
-         th:href="@{/evidence(source=${source},publication=${page.manifestSha256})}">First page</a>
+         th:href="${producer == null} ? @{/evidence(source=${source},publication=${page.manifestSha256})} : @{/evidence(source=${source},publication=${page.manifestSha256},producer=${producer})}">First page</a>
       <a th:if="${offset > 0 && slug != null}"
          th:href="@{/concepts/{slug}/evidence(slug=${slug},publication=${page.manifestSha256})}">First page</a>
       <a th:if="${page.nextOffset != null && listing}"
-         th:href="@{/evidence(offset=${page.nextOffset},publication=${page.manifestSha256})}">Next page</a>
+         th:href="${producer == null} ? @{/evidence(offset=${page.nextOffset},publication=${page.manifestSha256})} : @{/evidence(offset=${page.nextOffset},publication=${page.manifestSha256},producer=${producer})}">Next page</a>
       <a th:if="${page.nextOffset != null && source != null}"
-         th:href="@{/evidence(source=${source},offset=${page.nextOffset},publication=${page.manifestSha256})}">Next page</a>
+         th:href="${producer == null} ? @{/evidence(source=${source},offset=${page.nextOffset},publication=${page.manifestSha256})} : @{/evidence(source=${source},offset=${page.nextOffset},publication=${page.manifestSha256},producer=${producer})}">Next page</a>
       <a th:if="${page.nextOffset != null && slug != null}"
          th:href="@{/concepts/{slug}/evidence(slug=${slug},offset=${page.nextOffset},publication=${page.manifestSha256})}">Next page</a>
     </nav>

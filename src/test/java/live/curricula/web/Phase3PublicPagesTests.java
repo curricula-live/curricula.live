@@ -13,6 +13,8 @@ import java.util.List;
 import live.curricula.web.catalog.CatalogClient;
 import live.curricula.web.catalog.ConceptDocumentation;
 import live.curricula.web.catalog.ConceptSummary;
+import live.curricula.web.catalog.EducationContext;
+import live.curricula.web.catalog.PublicationStatus;
 import live.curricula.web.catalog.Scholarly;
 import live.curricula.web.catalog.SearchResults;
 import org.junit.jupiter.api.Test;
@@ -39,8 +41,8 @@ class Phase3PublicPagesTests {
         assertTrue(get("/graph").body().contains("Find a starting concept"));
         var concept = new ConceptSummary("https://curricula.live/id/formal-sciences/concept/dpll-algorithm",
                 "dpll-algorithm", "DPLL");
-        when(api.search("DPLL")).thenReturn(new SearchResults("DPLL", List.of(concept)));
-        assertTrue(get("/graph?q=DPLL").body().contains("/concepts/dpll-algorithm/graph"));
+        when(api.searchAcross("DPLL")).thenReturn(new SearchResults("DPLL", List.of(concept)));
+        assertTrue(get("/graph?q=DPLL").body().contains("/graph/by-iri?iri="));
 
         String archived = "https://curricula.live/knowledge/computing/overlay/002bd701-c4a9-5e04-a861-40dfab515cf7";
         var result = get("/graph?concept=" + URLEncoder.encode(archived, StandardCharsets.UTF_8));
@@ -57,6 +59,36 @@ class Phase3PublicPagesTests {
         assertTrue(get("/concepts/dpll-algorithm").body().contains("Recorded definition"));
         assertTrue(get("/concepts/dpll-algorithm?view=curriculum").body().contains("require published, reviewed data"));
         assertTrue(get("/concepts/dpll-algorithm?view=pedagogical").body().contains("yet to be published"));
+    }
+
+    @Test void planningIsDisabledAndCanonicalPagesRenderOnlyRecordedEducation() throws Exception {
+        assertEquals(403, get("/teach").statusCode());
+        assertFalse(get("/").body().contains("Teacher planning"));
+        String iri = "https://example.test/learning/concept/algebra";
+        String graph = "https://example.test/learning/graph/asserted";
+        var concept = new ConceptSummary(iri, "algebra", "Algebra test concept");
+        when(api.conceptByIri(iri)).thenReturn(concept);
+        when(api.education(iri)).thenReturn(new EducationContext(iri, true, List.of(),
+                List.of(new EducationContext.Item("https://example.test/curriculum/test", "", graph)),
+                List.of(new EducationContext.Item("Published test note", "en", graph)), false));
+        var response = get("/concepts/by-iri?iri=" + URLEncoder.encode(iri, StandardCharsets.UTF_8));
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("Published test note"));
+        assertTrue(response.body().contains("https://example.test/curriculum/test"));
+        assertTrue(response.body().contains("record no prerequisites"));
+    }
+
+    @Test void sourcesCanBeSelectedByProducerWithoutLosingThePublicationPin() throws Exception {
+        String pin = "a".repeat(64);
+        var current = new PublicationStatus(true, "fixture-1", pin, null, java.util.Map.of(), 1);
+        when(api.publications()).thenReturn(java.util.Map.of("formal-sciences", current, "fixture", current));
+        when(api.sources("fixture", 0, null)).thenReturn(new Scholarly.Page<>("fixture-1", pin, 0, 25, List.of(
+                new Scholarly.Source("https://example.test/fixture-source", 1))));
+        var response = get("/evidence?producer=fixture");
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("Ontology publication"));
+        assertTrue(response.body().contains("fixture vfixture-1"));
+        assertTrue(response.body().contains("publication=" + pin + "&amp;producer=fixture"));
     }
 
     @Test void evidenceLinksPinThePublicationAndHandleRollovers() throws Exception {

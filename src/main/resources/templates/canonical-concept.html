@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canonical concept — curricula.live</title><link rel="stylesheet" href="/css/site.css"></head>
+<body><div th:replace="~{fragments/header :: header}"></div>
+<main id="content" tabindex="-1" class="container">
+  <a href="/graph">Find another concept</a>
+  <article th:if="${concept != null}">
+    <h1 th:text="${concept.label}">Concept</h1>
+    <p class="iri" th:text="${concept.iri}">Canonical IRI</p>
+    <a th:href="@{/graph/by-iri(iri=${iri})}">Explore relationship graph</a>
+    <section class="section"><h2>Curriculum</h2><div th:replace="~{fragments/education :: curriculum}"></div></section>
+    <section class="section"><h2>Pedagogy</h2><div th:replace="~{fragments/education :: pedagogy}"></div></section>
+  </article>
+  <p th:if="${unavailable}" role="status">Knowledge service unavailable.</p>
+  <p th:if="${concept == null && !unavailable}" role="status">Concept not found.</p>
+</main><div th:replace="~{fragments/footer :: footer}"></div></body></html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"><body>
+<div th:fragment="curriculum">
+  <p th:if="${educationUnavailable}" role="status">Educational sources are temporarily unavailable.</p>
+  <p th:if="${educationUnavailable != true && (education == null || !education.available)}">Curriculum mappings and prerequisites require published, reviewed data.</p>
+  <th:block th:if="${education != null && education.available}">
+    <h3>Published prerequisites</h3>
+    <p th:if="${education.prerequisites.isEmpty()}">The active educational publications record no prerequisites for this concept.</p>
+    <ul th:unless="${education.prerequisites.isEmpty()}" class="results">
+      <li th:each="item : ${education.prerequisites}">
+        <a th:href="@{/concepts/by-iri(iri=${item.value})}" class="iri" th:text="${item.value}">Prerequisite</a>
+        <span class="iri" th:text="${item.graphIri}">Source graph</span>
+      </li>
+    </ul>
+    <h3>Published curriculum mappings</h3>
+    <p th:if="${education.curriculumMappings.isEmpty()}">The active educational publications record no mappings for this concept.</p>
+    <ul th:unless="${education.curriculumMappings.isEmpty()}" class="results">
+      <li th:each="item : ${education.curriculumMappings}">
+        <span class="iri" th:text="${item.value}">Curriculum IRI</span>
+        <span class="iri" th:text="${item.graphIri}">Source graph</span>
+      </li>
+    </ul>
+    <p th:if="${education.truncated}">Only the first 100 records per category are shown.</p>
+  </th:block>
+</div>
+<div th:fragment="pedagogy">
+  <p th:if="${educationUnavailable}" role="status">Educational sources are temporarily unavailable.</p>
+  <p th:if="${educationUnavailable != true && (education == null || education.teachingNotes.isEmpty())}">Teacher-facing notes for this concept have yet to be published.</p>
+  <ul class="results" th:if="${education != null && !education.teachingNotes.isEmpty()}">
+    <li th:each="item : ${education.teachingNotes}">
+      <span th:lang="${item.language.isEmpty() ? null : item.language}" th:text="${item.value}">Teaching note</span>
+      <span class="iri" th:text="${item.graphIri}">Source graph</span>
+    </li>
+  </ul>
+</div>
+</body></html>

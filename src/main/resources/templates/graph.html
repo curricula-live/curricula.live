@@ -4,12 +4,13 @@
 <title>Concept graph — curricula.live</title>
 <link rel="stylesheet" href="/css/site.css"><script src="/js/concept-graph.js" defer></script></head>
 <body><div th:replace="~{fragments/header :: header}"></div>
-<main class="container graph-page">
-<a th:href="@{/concepts/{slug}(slug=${slug})}">Back to concept</a>
+<main id="content" tabindex="-1" class="container graph-page">
+<a th:if="${slug != null}" th:href="@{/concepts/{slug}(slug=${slug})}">Back to concept</a>
+<a th:if="${iri != null}" th:href="@{/concepts/by-iri(iri=${iri})}">Back to concept</a>
 <h1 th:if="${concept != null}" th:text="|Relationships of ${concept.label}|">Graph</h1>
 <p class="notice" th:if="${unavailable}">Knowledge service unavailable.</p>
 <p class="notice" th:if="${concept == null and !unavailable}">Concept not found.</p>
-<div th:if="${concept != null}" id="graph-app" th:attr="data-slug=${slug}">
+<div th:if="${concept != null}" id="graph-app" th:attr="data-slug=${slug},data-iri=${iri}">
   <div class="graph-filters" aria-label="Neighborhood filters">
     <label>Depth
       <select id="graph-depth"><option value="1">1 hop</option><option value="2" selected>2 hops</option>

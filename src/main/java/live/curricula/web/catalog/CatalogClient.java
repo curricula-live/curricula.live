@@ -72,6 +72,40 @@ public class CatalogClient {
                 .retrieve().body(Neighborhood.class);
     }
 
+    public ConceptSummary conceptByIri(String iri) {
+        return client.get().uri(builder -> builder.path("/api/v1/concepts/by-iri")
+                .queryParam("iri", "{iri}").build(iri)).retrieve().body(ConceptSummary.class);
+    }
+
+    public SearchResults searchAcross(String query) {
+        return client.get().uri(builder -> builder.path("/api/v1/search").queryParam("producer", "all")
+                .queryParam("q", "{query}").build(query)).retrieve().body(SearchResults.class);
+    }
+
+    public Neighborhood neighborhoodByIri(String iri, int depth, String graph, String kind, String domain, String predicate) {
+        return client.get().uri(builder -> builder.path("/api/v1/concepts/by-iri/neighborhood")
+                .queryParam("iri", "{iri}").queryParam("depth", depth).queryParam("limit", 200)
+                .queryParam("graph", graph).queryParam("kind", kind)
+                .queryParamIfPresent("domain", domain.isEmpty() ? Optional.empty() : Optional.of("{domain}"))
+                .queryParamIfPresent("predicate", predicate.isEmpty() ? Optional.empty() : Optional.of("{predicate}"))
+                .build(Map.of("iri", iri, "domain", domain, "predicate", predicate)))
+                .retrieve().body(Neighborhood.class);
+    }
+
+    public List<Evidence> edgeProvenanceByIri(String iri, String predicate, String object) {
+        var result = client.get().uri(builder -> builder.path("/api/v1/concepts/by-iri/provenance")
+                .queryParam("iri", "{iri}").queryParam("direction", "outgoing")
+                .queryParam("predicate", "{predicate}").queryParam("adjacent", "{object}")
+                .build(Map.of("iri", iri, "predicate", predicate, "object", object)))
+                .retrieve().body(new ParameterizedTypeReference<List<Evidence>>() {});
+        return result == null ? List.of() : result;
+    }
+
+    public EducationContext education(String iri) {
+        return client.get().uri(builder -> builder.path("/api/v1/education").queryParam("iri", "{iri}").build(iri))
+                .retrieve().body(EducationContext.class);
+    }
+
     public ConceptDocumentation documentation(String slug) {
         return client.get().uri("/api/v1/concepts/{slug}/documentation", slug)
                 .retrieve().body(ConceptDocumentation.class);
@@ -90,6 +124,26 @@ public class CatalogClient {
             if (slug != null) return builder.path("/api/v1/concepts/{slug}/evidence").build(slug);
             return builder.path("/api/v1/scholarly/assertions").queryParam("source", "{source}").build(source);
         }).retrieve().body(new ParameterizedTypeReference<Scholarly.Page<Scholarly.Citation>>() {});
+    }
+
+    public Scholarly.Page<Scholarly.Source> sources(String producer, int offset, String publication) {
+        return client.get().uri(builder -> builder.path("/api/v1/scholarly/sources")
+                .queryParam("producer", "{producer}").queryParam("offset", offset)
+                .queryParamIfPresent("publication", Optional.ofNullable(publication)).build(producer))
+                .retrieve().body(new ParameterizedTypeReference<Scholarly.Page<Scholarly.Source>>() {});
+    }
+
+    public Scholarly.Page<Scholarly.Citation> citationsByProducer(String producer, String source, int offset, String publication) {
+        return client.get().uri(builder -> builder.path("/api/v1/scholarly/assertions")
+                .queryParam("producer", "{producer}").queryParam("source", "{source}").queryParam("offset", offset)
+                .queryParamIfPresent("publication", Optional.ofNullable(publication))
+                .build(Map.of("producer", producer, "source", source)))
+                .retrieve().body(new ParameterizedTypeReference<Scholarly.Page<Scholarly.Citation>>() {});
+    }
+
+    public Map<String, PublicationStatus> publications() {
+        return client.get().uri("/api/v1/knowledge/publications")
+                .retrieve().body(new ParameterizedTypeReference<Map<String, PublicationStatus>>() {});
     }
 
     public PublicationStatus publication() {
