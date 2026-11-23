@@ -1,4 +1,6 @@
-# Oracle ARM64 staging
+# Extended staging runbook
+
+For the pinned read-only stack on x86-64 or ARM64, start with [DEPLOYMENT.md](../DEPLOYMENT.md).
 
 The staging stack uses an Oracle Ampere ARM64 VM, Docker Engine with Compose v2, and a host Caddy service. Cloudflare terminates public HTTPS and reaches Caddy over HTTPS in Full (strict) mode. Caddy proxies to the web service on the VM's loopback interface. The web service reaches the API over an internal Docker network. Jena uses the API's named TDB2 volume. The API, TDB2, and RDF publication commands have no public listener.
 
