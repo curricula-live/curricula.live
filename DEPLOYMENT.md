@@ -4,7 +4,7 @@ The staging profile packages API `d4f2ec98a600f9ca99f277257ef03ae8f4d7f76c` and 
 
 ## Prerequisites
 
-Use a Linux Docker host with Compose v2.24.4 or newer, JDK 25, Git, Bash, curl, jq, GNU coreutils and tar, and flock. The first build needs outbound HTTPS to GitHub, Maven Central, and Docker Hub. Use a cgroup-enabled host for the configured API and web memory limits and a local Docker volume supporting file locks, atomic renames, and directory syncing.
+Use a Linux host with Docker Engine 28 or newer so loopback port publishing stays private on the local network. Use Compose v2.24.4 or newer, JDK 25, Git, Bash, curl, jq, GNU coreutils and tar, and flock. The first build needs outbound HTTPS to GitHub, Maven Central, and Docker Hub. Use a cgroup-enabled host for the configured API and web memory limits and a local Docker volume supporting file locks, atomic renames, and directory syncing.
 
 On the staging host, clone the two checkouts as siblings. Access is through the authorized GitHub account for the host.
 
