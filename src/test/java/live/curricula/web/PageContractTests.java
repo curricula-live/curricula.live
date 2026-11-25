@@ -12,7 +12,7 @@ class PageContractTests {
  private HttpResponse<String> get(String path) throws Exception {
   return client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).GET().build(),HttpResponse.BodyHandlers.ofString());
  }
- @Test void homepage() throws Exception {var r=get("/");assertEquals(200,r.statusCode());assertTrue(r.body().contains("Explore the structure of learning"));}
+ @Test void homepage() throws Exception {var r=get("/");assertEquals(200,r.statusCode());assertTrue(r.body().contains("Search knowledge."));assertTrue(r.body().contains("Review concepts, plan lessons."));assertTrue(r.body().contains("brand-mark.svg"));assertTrue(r.body().contains("binary numbers"));}
  @Test void about() throws Exception {assertEquals(200,get("/about").statusCode());}
  @Test void searchPage() throws Exception {var r=get("/search");assertEquals(200,r.statusCode());assertTrue(r.body().contains("hx-get="));}
  @Test void htmxErrorIsShownWithoutFabricatedConcepts() throws Exception {

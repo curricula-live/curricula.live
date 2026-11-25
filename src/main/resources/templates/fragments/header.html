@@ -4,4 +4,32 @@
 <a class="skip-link" href="#content">Skip to content</a>
 <a class="brand" href="/">curricula<span>.live</span></a>
 <nav aria-label="Main navigation"><a href="/search">Explore</a><a href="/graph">Graph</a><a href="/evidence">Evidence</a><a th:if="${planningEnabled}" href="/teach">Teacher planning</a></nav>
-</header></body></html>
+</header>
+<header th:fragment="legacyHeader" class="legacy-header">
+  <a class="skip-link" href="#content">Skip to content</a>
+  <a class="legacy-brand" href="/" aria-label="curricula.live home">
+    <img class="legacy-brand-mark" src="/brand-mark.svg" alt="" width="32" height="40">
+    <span class="legacy-wordmark">curricula.live</span>
+  </a>
+  <nav class="legacy-navigation" aria-label="Primary navigation">
+    <a href="/search?category=concepts">Concepts</a>
+    <a href="/graph" title="Explore the knowledge graph">Atlas</a>
+    <a th:if="${planningEnabled}" href="/teach">Teacher Planning</a>
+    <span th:unless="${planningEnabled}" class="legacy-future-control" aria-label="Teacher Planning — coming later">Teacher Planning</span>
+    <span class="legacy-nav-divider" aria-hidden="true"></span>
+    <a th:if="${planningEnabled}" href="/teach" class="legacy-avatar-button" aria-label="Sign in" title="Sign in">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-4 2.8-6.2 6.5-6.2s5.9 2.2 6.5 6.2"/></svg>
+    </a>
+    <button th:unless="${planningEnabled}" class="legacy-avatar-button" type="button" aria-label="Sign in"
+            onclick="document.getElementById('legacy-signin-dialog').showModal()">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-4 2.8-6.2 6.5-6.2s5.9 2.2 6.5 6.2"/></svg>
+    </button>
+  </nav>
+</header>
+<dialog th:unless="${planningEnabled}" id="legacy-signin-dialog" class="legacy-signin-dialog" aria-label="Sign in">
+  <form method="dialog"><button class="legacy-dialog-close" aria-label="Close dialog">×</button></form>
+  <h2>Sign in</h2>
+  <button type="button" class="legacy-google-button" disabled><span>G</span>Continue with Google</button>
+  <p>Google sign-in is not enabled yet.</p>
+</dialog>
+</body></html>
