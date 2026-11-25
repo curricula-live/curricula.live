@@ -1,14 +1,36 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"><head>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>curricula.live — Connected knowledge</title>
-<link rel="stylesheet" href="/css/site.css"></head><body>
-<div th:replace="~{fragments/header :: header}"></div>
-<main id="content" tabindex="-1" class="container"><p class="eyebrow">Knowledge, explicitly connected</p>
-<h1>Explore the structure of learning.</h1>
-<p class="lede">Concepts, typed relationships and explainable learning paths across disciplines.</p>
-<a class="button" href="/search">Explore concepts</a>
-<section class="section"><h2>Validated knowledge</h2>
-<p>Canonical RDF publications will drive the graph, independently of the legacy database schema.</p>
-</section></main><div th:replace="~{fragments/footer :: footer}"></div>
+<title>curricula.live</title>
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="legacy-ui legacy-page">
+<div th:replace="~{fragments/header :: legacyHeader}"></div>
+<main id="content" tabindex="-1" class="legacy-home-main">
+  <section class="legacy-hero" aria-labelledby="home-title">
+    <h1 id="home-title">Search knowledge.</h1>
+    <p class="legacy-subtitle">Review concepts, plan lessons.</p>
+    <div class="legacy-search-wrapper">
+      <form class="legacy-search-form" action="/search" method="get" role="search">
+        <label class="legacy-sr-only" for="knowledge-search">Search knowledge</label>
+        <input id="knowledge-search" class="legacy-search-input" name="q" type="search"
+               placeholder="Search for a concept..." autocomplete="off"
+               maxlength="160" pattern=".*\S.*"
+               title="Enter at least one non-space character" required>
+        <button class="legacy-search-submit" type="submit" aria-label="Search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.25"/><path d="m16 16 4 4"/></svg>
+        </button>
+      </form>
+      <div class="legacy-examples" aria-label="Example searches">
+        <span>Try:</span>
+        <a th:href="@{/search(q='binary numbers')}" href="/search?q=binary%20numbers">binary numbers</a>
+        <a href="/search?q=two%27s%20complement">two's complement</a>
+        <a th:href="@{/search(q='arrays')}" href="/search?q=arrays">arrays</a>
+        <a th:href="@{/search(q='network protocol')}" href="/search?q=network%20protocol">network protocol</a>
+      </div>
+    </div>
+  </section>
+</main>
+<div th:replace="~{fragments/footer :: legacyFooter}"></div>
 </body></html>

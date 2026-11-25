@@ -1,18 +1,41 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"><head>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Search — curricula.live</title><link rel="stylesheet" href="/css/site.css">
 <script defer src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js" integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg" crossorigin="anonymous"></script>
-</head><body><div th:replace="~{fragments/header :: header}"></div>
-<main id="content" tabindex="-1" class="container"><p class="eyebrow">Knowledge explorer</p><h1>Search concepts and connections</h1>
-<form action="/search" method="get" hx-get="/search/results" hx-target="#search-results" hx-swap="outerHTML">
-<label for="q">Concept or keyword</label>
-<div class="search-row"><input name="q" id="q" type="search" maxlength="160" required th:value="${query}" placeholder="binary search"><button>Search</button></div>
-<label for="category">Result type</label>
-<select name="category" id="category">
-    <option value="all" th:selected="${category == 'all'}">All results</option>
-    <option value="concepts" th:selected="${category == 'concepts'}">Concepts</option>
-    <option value="connections" th:selected="${category == 'connections'}">Connections</option>
-</select>
-</form><div th:replace="~{fragments/results :: results}"></div></main><div th:replace="~{fragments/footer :: footer}"></div>
+</head>
+<body class="legacy-ui legacy-page">
+<div th:replace="~{fragments/header :: legacyHeader}"></div>
+<main id="content" tabindex="-1" class="legacy-search-main">
+  <form class="legacy-search-page-form" action="/search" method="get" role="search"
+        hx-get="/search/results" hx-target="#search-results" hx-swap="outerHTML">
+    <div class="legacy-search-wrapper legacy-search-area">
+      <div class="legacy-search-form">
+        <label class="legacy-sr-only" for="q">Search knowledge</label>
+        <input id="q" class="legacy-search-input" name="q" type="search"
+               th:value="${query}" placeholder="Search for a concept..."
+               autocomplete="off" maxlength="160" pattern=".*\S.*"
+               title="Enter at least one non-space character" required>
+        <button class="legacy-search-submit" type="submit" aria-label="Search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.25"/><path d="m16 16 4 4"/></svg>
+        </button>
+      </div>
+    </div>
+    <details class="legacy-filters">
+      <summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M8 4v6M16 14v6"/></svg>Filters <span aria-hidden="true">↓</span></summary>
+      <div class="legacy-filter-tray">
+        <label for="category">Result type</label>
+        <select name="category" id="category">
+          <option value="all" th:selected="${category == 'all'}">All results</option>
+          <option value="concepts" th:selected="${category == 'concepts'}">Concepts</option>
+          <option value="connections" th:selected="${category == 'connections'}">Connections</option>
+        </select>
+        <button class="legacy-filter-apply" type="submit">Apply filters</button>
+      </div>
+    </details>
+  </form>
+  <div th:replace="~{fragments/results :: results}"></div>
+</main>
+<div th:replace="~{fragments/footer :: legacyFooter}"></div>
 </body></html>

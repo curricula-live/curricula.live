@@ -1,37 +1,51 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org"><body>
-<section th:fragment="results" id="search-results" aria-live="polite">
-    <p th:if="${invalidQuery}" class="notice" role="status">Enter at most 160 characters.</p>
-    <section th:if="${searched and !invalidQuery and category != 'connections'}" aria-labelledby="concept-results-title">
-        <h2 id="concept-results-title">Concepts</h2>
-        <p th:if="${conceptsUnavailable}" class="notice" role="status">Concept search is temporarily unavailable. Check whether the knowledge dataset is connected.</p>
-        <p th:if="${!conceptsUnavailable and #lists.isEmpty(results)}" class="notice">No matching concepts.</p>
-        <ul class="results" th:if="${!#lists.isEmpty(results)}">
-            <li th:each="item : ${results}">
-                <a th:text="${item.label}" th:href="@{/concepts/{slug}(slug=${item.slug})}">Concept</a>
-                <span class="iri" th:text="${item.iri}"></span>
-            </li>
-        </ul>
+<section th:fragment="results" id="search-results" class="legacy-search-results" aria-live="polite">
+  <p th:if="${invalidQuery}" class="legacy-result-message" role="status">Enter at most 160 characters.</p>
+  <div th:if="${searched and !invalidQuery}" class="legacy-query-context">
+    <span th:if="${category == 'concepts' and !conceptsUnavailable}"
+      th:text="|Showing ${#lists.size(results)} concept matches for “${query}”|"></span>
+    <span th:if="${category == 'connections' and !connectionsUnavailable and !connectionsInvalid}"
+      th:text="|Showing ${#lists.size(connections)} connection matches for “${query}”|"></span>
+    <span th:if="${category == 'all' and !conceptsUnavailable and !connectionsUnavailable and !connectionsInvalid}"
+      th:text="|Showing ${#lists.size(results)} concept matches and ${#lists.size(connections)} connection matches for “${query}”|"></span>
+  </div>
+  <div th:if="${searched and !invalidQuery}" class="legacy-grouped-results">
+    <section th:if="${category != 'connections'}" class="legacy-result-section" aria-labelledby="concept-results-title">
+      <h1 id="concept-results-title">Concepts</h1>
+      <p th:if="${conceptsUnavailable}" class="legacy-result-message" role="status">Concept search is temporarily unavailable. Check whether the knowledge dataset is connected.</p>
+      <p th:if="${!conceptsUnavailable and #lists.isEmpty(results)}" class="legacy-result-message">No matching concepts.</p>
+      <div class="legacy-result-list" th:unless="${#lists.isEmpty(results)}">
+        <a class="legacy-concept-result" th:each="item : ${results}"
+           th:href="@{/concepts/{slug}(slug=${item.slug})}">
+          <span class="legacy-result-title" th:text="${item.label}">Concept</span>
+          <span class="legacy-result-meta" th:text="${item.iri}">Canonical IRI</span>
+        </a>
+      </div>
     </section>
-    <section th:if="${searched and !invalidQuery and category != 'concepts'}" aria-labelledby="connection-results-title">
-        <h2 id="connection-results-title">Connections</h2>
-        <p th:if="${connectionsUnavailable}" class="notice" role="status">Connection search is temporarily unavailable.</p>
-        <p th:if="${connectionsInvalid}" class="notice" role="status">Enter searchable text of at most 160 characters.</p>
-        <p th:if="${!connectionsUnavailable and !connectionsInvalid and #lists.isEmpty(connections)}" class="notice">No matching connections.</p>
-        <ul class="results" th:if="${!#lists.isEmpty(connections)}">
-            <li th:each="item : ${connections}">
-                <span>
-                    <a th:text="${item.subjectLabel}" th:href="@{/concepts/{slug}(slug=${item.subjectSlug})}">Source</a>
-                    <span th:text="${item.predicateName()}" th:title="${item.predicate}">relates to</span>
-                    →
-                    <a th:text="${item.objectLabel}" th:href="@{/concepts/{slug}(slug=${item.objectSlug})}">Target</a>
-                </span>
-                <span class="iri" th:text="${item.graph}"></span>
-            </li>
-        </ul>
+    <section th:if="${category != 'concepts'}" class="legacy-result-section" aria-labelledby="connection-results-title">
+      <h1 id="connection-results-title">Connections</h1>
+      <p th:if="${connectionsUnavailable}" class="legacy-result-message" role="status">Connection search is temporarily unavailable.</p>
+      <p th:if="${connectionsInvalid}" class="legacy-result-message" role="status">Enter searchable text of at most 160 characters.</p>
+      <p th:if="${!connectionsUnavailable and !connectionsInvalid and #lists.isEmpty(connections)}" class="legacy-result-message">No matching connections.</p>
+      <div class="legacy-connection-list" th:unless="${#lists.isEmpty(connections)}">
+        <div class="legacy-connection-row" th:each="item : ${connections}">
+          <a class="legacy-inline-concept" th:href="@{/concepts/{slug}(slug=${item.subjectSlug})}"
+             th:text="${item.subjectLabel}">Source</a>
+          <span class="legacy-relation-type" th:title="${item.predicate}" th:text="${item.predicateName()}">related to</span>
+          <span class="legacy-arrow" aria-hidden="true">→</span>
+          <a class="legacy-inline-concept" th:href="@{/concepts/{slug}(slug=${item.objectSlug})}"
+             th:text="${item.objectLabel}">Target</a>
+          <span class="legacy-graph-layer" th:text="${item.graph}">asserted</span>
+        </div>
+      </div>
     </section>
-    <th:block th:if="${searched && !invalidQuery && category != 'connections'}">
-        <div th:replace="~{fragments/archive-results :: archive}"></div>
-    </th:block>
+  </div>
+  <div th:if="${searched and !invalidQuery and category != 'connections'}"
+       th:replace="~{fragments/archive-results :: archive}"></div>
+  <section th:unless="${searched}" class="legacy-search-empty">
+    <h1>Search knowledge.</h1>
+    <p>Enter a concept or relationship above.</p>
+  </section>
 </section>
 </body></html>
