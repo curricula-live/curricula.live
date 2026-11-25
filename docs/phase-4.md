@@ -1,0 +1,7 @@
+# Phase 4 implementation
+
+The public graph picker searches all active ontology producers and opens canonical IRIs. The Formal Sciences slug bookmarks and legacy computing archive links retain their existing identity. The graph's keyboard controls work on mobile, and the site supplies a skip link and focus indicators. Curriculum and pedagogy display only explicit records from configured educational publishers, with a source graph IRI beside each record. Scholarly browsing can select a producer and pins its manifest digest across pages.
+
+The optional teacher interface at `/teach` uses OIDC authorization-code login with PKCE. Form submissions use Spring Security CSRF tokens. Teachers can create and edit private plans and link them to an active canonical concept. Ownership is resolved from the verified issuer and subject, and edits use optimistic revisions. The API checks the access-token audience separately from the OIDC client. The base deployment keeps account and planning access disabled.
+
+The [deployment runbook](deployment.md) documents the optional Compose profile, private database network, HTTPS callback, secret files and backup recovery. Native Oracle validation needs an approved staging instance, an approved issuer and registrations, and reviewed formal-sciences data. Legacy UUID payloads still require a reviewed crosswalk. Scholarly taxonomy imports and production educational collections require independent reviewed releases.

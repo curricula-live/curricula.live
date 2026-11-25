@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Graph explorer — curricula.live</title><link rel="stylesheet" href="/css/site.css"></head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+<main id="content" tabindex="-1" class="container">
+<h1>Graph explorer</h1>
+<form method="get" action="/graph">
+  <label for="graph-query">Find a starting concept</label>
+  <div class="search-row"><input id="graph-query" name="q" type="search" maxlength="160" th:value="${query}" required>
+    <button>Find concepts</button></div>
+</form>
+<p th:if="${invalidQuery}" role="status">Enter at most 160 characters.</p>
+<th:block th:if="${searched && !invalidQuery}">
+  <p th:if="${conceptsUnavailable}" role="status">Canonical search is temporarily unavailable.</p>
+  <p th:if="${!conceptsUnavailable && results.isEmpty()}">No matching canonical concepts.</p>
+  <ul th:unless="${results.isEmpty()}" class="results">
+    <li th:each="concept : ${results}"><a th:href="@{/graph/by-iri(iri=${concept.iri})}" th:text="${concept.label}">Concept graph</a><span class="iri" th:text="${concept.iri}"></span></li>
+  </ul>
+  <div th:replace="~{fragments/archive-results :: archive}"></div>
+</th:block>
+<p><a href="https://graph.curricula.live/">Browse the archived graph overview</a></p>
+</main>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body></html>

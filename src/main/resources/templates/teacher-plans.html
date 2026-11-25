@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teacher planning — curricula.live</title><link rel="stylesheet" href="/css/site.css"></head>
+<body><div th:replace="~{fragments/header :: header}"></div>
+<main id="content" tabindex="-1" class="container">
+  <h1>Teacher planning</h1>
+  <form method="post" th:action="@{/logout}"><button type="submit">Sign out</button></form>
+  <section class="section">
+    <h2>Your plans</h2>
+    <p th:if="${plans.isEmpty()}">No plans on this page.</p>
+    <ul class="results" th:unless="${plans.isEmpty()}">
+      <li th:each="plan : ${plans}">
+        <a th:href="@{/teach/{id}(id=${plan.id})}" th:text="${plan.title}">Lesson plan</a>
+        <span class="iri" th:text="${plan.conceptIri}">Concept IRI</span>
+      </li>
+    </ul>
+    <a th:if="${next != null}" th:href="@{/teach(offset=${next})}">Next plans</a>
+  </section>
+  <section class="section">
+    <h2>Create a plan</h2>
+    <form method="post" th:action="@{/teach}" class="plan-form">
+      <label for="title">Plan title</label><input id="title" name="title" maxlength="200" required>
+      <label for="conceptIri">Canonical concept IRI</label>
+      <input id="conceptIri" name="conceptIri" type="url" maxlength="2048" required aria-describedby="concept-help">
+      <p id="concept-help">Copy a canonical IRI from <a href="/search">concept search</a>.</p>
+      <button type="submit">Save plan</button>
+    </form>
+  </section>
+</main><div th:replace="~{fragments/footer :: footer}"></div></body></html>

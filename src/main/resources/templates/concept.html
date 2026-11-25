@@ -1,11 +1,85 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Concept — curricula.live</title><link rel="stylesheet" href="/css/site.css"></head><body>
-<div th:replace="~{fragments/header :: header}"></div>
-<main class="container"><a href="/search">Back to search</a>
-<p th:if="${unavailable}" class="notice">The knowledge dataset is not connected yet.</p>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title th:text="|Concept — ${slug} — curricula.live|">Concept</title>
+<link rel="stylesheet" href="/css/site.css"></head>
+<body><div th:replace="~{fragments/header :: header}"></div>
+<main id="content" tabindex="-1" class="container">
+<a href="/search">Back to search</a>
+<p th:if="${unavailable}" class="notice" role="status">The validated knowledge service is currently unavailable.</p>
 <p th:if="${concept == null and !unavailable}" class="notice">Concept not found.</p>
-<article th:if="${concept != null}"><p class="eyebrow">Concept</p>
-<h1 th:text="${concept.label}"></h1><p class="iri" th:text="${concept.iri}"></p>
-</article></main></body></html>
+<article th:if="${concept != null}">
+  <p class="eyebrow">Canonical concept</p>
+  <h1 th:text="${concept.label}">Concept label</h1>
+  <p class="iri" th:text="${concept.iri}">IRI</p>
+  <nav class="concept-nav" aria-label="Concept views">
+    <a th:href="@{/concepts/{slug}(slug=${slug})}" th:attr="aria-current=${activeView == 'overview' ? 'page' : null}">Overview</a>
+    <a th:href="@{/concepts/{slug}(slug=${slug},view='connections')}" th:attr="aria-current=${connectionsView ? 'page' : null}">Connections</a>
+    <a th:href="@{/concepts/{slug}(slug=${slug},view='curriculum')}" th:attr="aria-current=${activeView == 'curriculum' ? 'page' : null}">Curriculum</a>
+    <a th:href="@{/concepts/{slug}(slug=${slug},view='pedagogical')}" th:attr="aria-current=${activeView == 'pedagogical' ? 'page' : null}">Pedagogical</a>
+    <a th:href="@{/concepts/{slug}/evidence(slug=${slug})}">Browse citations</a>
+    <a th:href="@{/concepts/{slug}/graph(slug=${slug})}">Explore relationship graph</a>
+  </nav>
+  <section class="section" th:if="${activeView == 'overview' || activeView == 'pedagogical'}">
+    <h2>Definitions</h2>
+    <p th:if="${documentationUnavailable}" role="status">Definitions are temporarily unavailable.</p>
+    <p th:if="${!documentationUnavailable && definitions.isEmpty()}">The active publication has no recorded definition for this concept.</p>
+    <ul class="results" th:unless="${definitions.isEmpty()}">
+      <li th:each="definition : ${definitions}" th:lang="${definition.language.isEmpty() ? null : definition.language}"
+          th:text="${definition.text}">Definition</li>
+    </ul>
+  </section>
+  <section class="section" th:if="${activeView == 'curriculum'}">
+    <h2>Curriculum</h2>
+    <div th:replace="~{fragments/education :: curriculum}"></div>
+  </section>
+  <section class="section" th:if="${activeView == 'pedagogical'}">
+    <h2>Pedagogical</h2>
+    <div th:replace="~{fragments/education :: pedagogy}"></div>
+    <p><a th:href="@{/concepts/{slug}/evidence(slug=${slug})}">Review the recorded citations</a> for source material.</p>
+  </section>
+  <th:block th:if="${activeView == 'overview' || connectionsView}">
+  <section class="section" id="connections" th:classappend="${connectionsView} ? 'section-current'">
+    <h2>Scientific relationships</h2>
+    <p>Recorded directional scientific assertions; these are not derived from taxonomic proximity.</p>
+    <ul class="relation-list">
+      <li th:each="r : ${relations}" th:if="${r.kind == 'scientific'}">
+        <span class="tag" th:text="${r.graph}">asserted</span>
+        <span class="tag" th:text="${r.direction}">outgoing</span>
+        <span><strong th:text="${r.direction == 'incoming' ? r.objectLabel : concept.label}">Subject</strong>
+          <span aria-hidden="true"> → </span>
+          <strong th:text="${r.direction == 'incoming' ? concept.label : r.objectLabel}">Object</strong></span>
+        <span class="iri" th:text="${r.predicate}">predicate</span>
+      </li>
+    </ul>
+  </section>
+  <section class="section">
+    <h2>Taxonomy and other recorded links</h2>
+    <ul class="relation-list">
+      <li th:each="r : ${relations}" th:if="${r.kind != 'scientific'}">
+        <span class="tag" th:text="${r.kind}">kind</span>
+        <span class="tag" th:text="${r.graph}">graph</span>
+        <span class="tag" th:text="${r.direction}">direction</span>
+        <span th:text="${r.predicate}">predicate</span>
+        <span th:text="${r.objectLabel}">related resource</span>
+      </li>
+    </ul>
+  </section>
+  <section class="section">
+    <h2>Provenance and supporting evidence</h2>
+    <p>Reified statements and source witnesses from the provenance graph.</p>
+    <ul class="relation-list">
+      <li th:each="e : ${evidence}">
+        <strong class="iri" th:text="${e.assertionIri}">Assertion</strong>
+        <span class="iri" th:text="${e.predicate}">Predicate</span>
+        <span class="iri" th:if="${e.object != null}" th:text="|Object: ${e.object}|"></span>
+        <span class="iri" th:if="${e.source != null}" th:text="|Source: ${e.source}|"></span>
+        <span class="iri" th:if="${e.witness != null}" th:text="|Witness: ${e.witness}|"></span>
+        <span class="iri" th:if="${e.identifier != null}" th:text="|Identifier: ${e.identifier}|"></span>
+      </li>
+    </ul>
+  </section>
+  </th:block>
+</article>
+</main><div th:replace="~{fragments/footer :: footer}"></div>
+</body></html>

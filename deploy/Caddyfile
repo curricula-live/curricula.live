@@ -1,0 +1,13 @@
+{
+	auto_https disable_redirects
+}
+
+{$CURRICULA_STAGING_HOST} {
+	tls {$CURRICULA_STAGING_CERT} {$CURRICULA_STAGING_KEY}
+	log
+	@management path /actuator /actuator/*
+	respond @management 404
+	@planning path /teach /teach/* /oauth2/* /login /login/* /logout
+	header @planning Cache-Control "private, no-store"
+	reverse_proxy 127.0.0.1:{$CURRICULA_WEB_BIND_PORT:8080}
+}

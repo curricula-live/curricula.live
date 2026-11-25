@@ -3,6 +3,12 @@ spring:
     name: curricula-web
 server:
   port: 8080
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+        same-site: lax
 management:
   endpoints:
     web:
@@ -11,3 +17,4 @@ management:
 curricula:
   api:
     base-url: ${CURRICULA_API_URL:http://localhost:8081}
+  planning-enabled: ${CURRICULA_PLANNING_ENABLED:false}
